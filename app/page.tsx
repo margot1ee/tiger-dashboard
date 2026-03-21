@@ -7,6 +7,7 @@ import {
   followerTrend,
   trafficData,
 } from "@/lib/demo-data";
+import { useYouTubeData } from "@/lib/hooks";
 import {
   Mail,
   Twitter,
@@ -33,7 +34,18 @@ function formatNumber(n: number) {
 }
 
 export default function OverviewPage() {
-  const totalFollowers = Object.values(channelMetrics).reduce(
+  const { data: ytData } = useYouTubeData();
+
+  // Merge real YouTube data with demo data
+  const mergedMetrics = { ...channelMetrics };
+  if (ytData) {
+    mergedMetrics.youtube = {
+      ...mergedMetrics.youtube,
+      followers: ytData.channel.subscribers,
+    };
+  }
+
+  const totalFollowers = Object.values(mergedMetrics).reduce(
     (sum, ch) => sum + ch.followers,
     0
   );
@@ -87,7 +99,7 @@ export default function OverviewPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {Object.entries(channelMetrics).map(([key, ch]) => (
+        {Object.entries(mergedMetrics).map(([key, ch]) => (
           <MetricCard
             key={key}
             title={ch.name}
