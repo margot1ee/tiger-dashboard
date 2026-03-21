@@ -7,7 +7,15 @@ import { channelMetrics } from "@/lib/demo-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, subDays } from "date-fns";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
+
+const channelUrls: Record<string, string> = {
+  substack: "https://reports.tiger-research.com/",
+  x: "https://x.com/Tiger_Research_",
+  linkedin: "https://www.linkedin.com/company/tiger-research-inc/",
+  youtube: "https://www.youtube.com/@Tiger_Research",
+  telegram: "https://t.me/tiger_research",
+};
 
 function seededRandom(seed: number) {
   const x = Math.sin(seed) * 10000;
@@ -51,7 +59,20 @@ export default function ChannelDetailPage({
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{metrics.name}</h1>
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          {metrics.name}
+          {channelUrls[channel] && (
+            <a
+              href={channelUrls[channel]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-orange-500 transition-colors"
+              title={`Open ${metrics.name}`}
+            >
+              <ExternalLink className="h-5 w-5" />
+            </a>
+          )}
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Detailed analytics for {metrics.name}
         </p>
