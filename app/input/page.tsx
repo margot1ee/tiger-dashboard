@@ -93,7 +93,7 @@ export default function InputPage() {
               <label className="text-sm font-medium mb-1.5 block">
                 Channel
               </label>
-              <Select value={selectedChannel} onValueChange={setSelectedChannel}>
+              <Select value={selectedChannel} onValueChange={(v) => v && setSelectedChannel(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
