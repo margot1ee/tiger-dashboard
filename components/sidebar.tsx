@@ -50,13 +50,22 @@ export function Sidebar() {
               />
             </div>
           ) : (
-            <div>
-              <h1 className="font-bold text-lg tracking-tight text-orange-500">
-                Tiger Research
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Analytics Dashboard
-              </p>
+            <div className="flex items-center gap-2.5">
+              <Image
+                src="/logo_symbol.png"
+                alt="Tiger Research"
+                width={24}
+                height={26}
+                className="h-[24px] w-auto"
+              />
+              <div>
+                <h1 className="font-bold text-sm tracking-tight text-foreground">
+                  Tiger Research
+                </h1>
+                <p className="text-[10px] text-muted-foreground -mt-0.5">
+                  Analytics Dashboard
+                </p>
+              </div>
             </div>
           )}
         </div>
