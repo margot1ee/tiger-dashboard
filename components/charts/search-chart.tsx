@@ -84,12 +84,13 @@ export function SearchChart({
               className="text-muted-foreground"
               tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v}
             />
-            {/* Right axis: Clicks (smaller scale) */}
+            {/* Right axis: Clicks (scaled up so clicks appear lower than impressions) */}
             <YAxis
               yAxisId="right"
               orientation="right"
               tick={{ fontSize: 11 }}
               className="text-muted-foreground"
+              domain={[0, (dataMax: number) => Math.ceil(dataMax * 3)]}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
