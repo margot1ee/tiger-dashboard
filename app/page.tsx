@@ -10,7 +10,6 @@ import {
 import { useYouTubeData, useTelegramData } from "@/lib/hooks";
 import {
   Mail,
-  Twitter,
   Linkedin,
   Youtube,
   Send,
@@ -18,11 +17,12 @@ import {
   Eye,
   Clock,
 } from "lucide-react";
+import { XIcon } from "@/components/icons/x-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const channelIcons: Record<string, React.ReactNode> = {
   substack: <Mail className="h-4 w-4" />,
-  x: <Twitter className="h-4 w-4" />,
+  x: <XIcon className="h-4 w-4" />,
   linkedin: <Linkedin className="h-4 w-4" />,
   youtube: <Youtube className="h-4 w-4" />,
   telegram: <Send className="h-4 w-4" />,

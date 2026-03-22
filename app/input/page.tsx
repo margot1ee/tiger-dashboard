@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CheckCircle2, Mail, Twitter, Linkedin } from "lucide-react";
+import { CheckCircle2, Mail, Linkedin } from "lucide-react";
+import { XIcon } from "@/components/icons/x-icon";
 
 interface ChannelInput {
   channel: string;
@@ -31,8 +32,8 @@ const channels: ChannelInput[] = [
     ],
   },
   {
-    channel: "X (Twitter)",
-    icon: <Twitter className="h-4 w-4" />,
+    channel: "X",
+    icon: <XIcon className="h-4 w-4" />,
     fields: [
       { key: "followers", label: "Total Followers", placeholder: "e.g. 18700" },
       { key: "impressions", label: "Weekly Impressions", placeholder: "e.g. 125000" },

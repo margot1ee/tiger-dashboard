@@ -33,7 +33,7 @@ export const channelMetrics = {
     color: "#FF6719",
   },
   x: {
-    name: "X (Twitter)",
+    name: "X",
     followers: 18700,
     change: 1.8,
     color: "#000000",

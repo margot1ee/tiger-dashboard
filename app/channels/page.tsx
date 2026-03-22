@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { channelMetrics } from "@/lib/demo-data";
 import { useYouTubeData, useTelegramData } from "@/lib/hooks";
-import { Mail, Twitter, Linkedin, Youtube, Send, ArrowRight } from "lucide-react";
+import { Mail, Linkedin, Youtube, Send, ArrowRight } from "lucide-react";
+import { XIcon } from "@/components/icons/x-icon";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +16,7 @@ const channelConfig: Record<string, { icon: React.ReactNode; description: string
     href: "/channels/substack",
   },
   x: {
-    icon: <Twitter className="h-6 w-6" />,
+    icon: <XIcon className="h-6 w-6" />,
     description: "Followers, tweets & engagement",
     href: "/channels/x",
   },
