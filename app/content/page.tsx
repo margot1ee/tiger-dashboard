@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { contentPerformance } from "@/lib/demo-data";
+// Real data only - no demo data
 import { useSubstackData, useYouTubeData, useXData } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -84,47 +84,43 @@ export default function ContentPage() {
   const { data: ytData } = useYouTubeData();
   const { data: xData } = useXData();
 
-  // Merge real data with demo data
+  // Real data only
   const allContent = useMemo(() => {
-    const items = [...contentPerformance];
+    const items: { date: string; channel: string; title: string; views: number; likes: number; comments: number; shares: number }[] = [];
 
-    // Add real Substack posts
+    // Substack posts from RSS
     if (substackData?.posts) {
       for (const post of substackData.posts) {
         const pubDate = new Date(post.pubDate).toISOString().split("T")[0];
-        if (!items.find((i) => i.title === post.title)) {
-          items.push({
-            date: pubDate,
-            channel: "Substack",
-            title: post.title,
-            views: 0,
-            likes: 0,
-            comments: 0,
-            shares: 0,
-          });
-        }
+        items.push({
+          date: pubDate,
+          channel: "Substack",
+          title: post.title,
+          views: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+        });
       }
     }
 
-    // Add real YouTube videos
+    // YouTube videos from API
     if (ytData?.videos) {
       for (const video of ytData.videos) {
         const pubDate = new Date(video.publishedAt).toISOString().split("T")[0];
-        if (!items.find((i) => i.title === video.title)) {
-          items.push({
-            date: pubDate,
-            channel: "YouTube",
-            title: video.title,
-            views: video.views,
-            likes: video.likes,
-            comments: video.comments,
-            shares: 0,
-          });
-        }
+        items.push({
+          date: pubDate,
+          channel: "YouTube",
+          title: video.title,
+          views: video.views,
+          likes: video.likes,
+          comments: video.comments,
+          shares: 0,
+        });
       }
     }
 
-    // Add real X tweets
+    // X tweets from API
     if (xData?.tweets) {
       for (const tweet of xData.tweets) {
         const pubDate = new Date(tweet.createdAt).toISOString().split("T")[0];
