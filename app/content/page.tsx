@@ -30,7 +30,7 @@ const channelColors: Record<string, string> = {
 
 type ChannelFilter = "all" | "Substack" | "X" | "LinkedIn" | "Telegram" | "YouTube";
 type SortKey = "date" | "views" | "likes";
-type PeriodKey = "7D" | "4W" | "3M" | "custom";
+type PeriodKey = "7D" | "4W" | "3M" | "6M" | "1Y" | "custom";
 
 const channelFilters: { key: ChannelFilter; label: string; icon: React.ReactNode }[] = [
   { key: "all", label: "All", icon: null },
@@ -60,6 +60,8 @@ function getDateRange(period: PeriodKey, customFrom?: string, customTo?: string)
     case "7D": from.setDate(from.getDate() - 7); break;
     case "4W": from.setDate(from.getDate() - 28); break;
     case "3M": from.setMonth(from.getMonth() - 3); break;
+    case "6M": from.setMonth(from.getMonth() - 6); break;
+    case "1Y": from.setFullYear(from.getFullYear() - 1); break;
   }
 
   return { from: from.toISOString().split("T")[0], to: toStr };
@@ -189,7 +191,7 @@ export default function ContentPage() {
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <div className="flex bg-muted rounded-lg p-0.5">
-            {(["7D", "4W", "3M", "custom"] as PeriodKey[]).map((p) => (
+            {(["7D", "4W", "3M", "6M", "1Y", "custom"] as PeriodKey[]).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}

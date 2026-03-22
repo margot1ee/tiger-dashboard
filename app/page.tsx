@@ -34,7 +34,7 @@ const channelIcons: Record<string, React.ReactNode> = {
 // Order: Substack first, then rest
 const channelOrder = ["substack", "x", "linkedin", "youtube", "telegram"];
 
-type PeriodKey = "7D" | "4W" | "3M" | "custom";
+type PeriodKey = "7D" | "4W" | "3M" | "6M" | "1Y" | "custom";
 
 function formatNumber(n: number) {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
@@ -61,6 +61,12 @@ function getDateRange(period: PeriodKey, customFrom?: string, customTo?: string)
     case "3M":
       from.setMonth(from.getMonth() - 3);
       break;
+    case "6M":
+      from.setMonth(from.getMonth() - 6);
+      break;
+    case "1Y":
+      from.setFullYear(from.getFullYear() - 1);
+      break;
   }
 
   return { from: from.toISOString().split("T")[0], to: toStr };
@@ -71,6 +77,8 @@ function getPeriodLabel(period: PeriodKey) {
     case "7D": return "vs prev 7 days";
     case "4W": return "vs prev 4 weeks";
     case "3M": return "vs prev 3 months";
+    case "6M": return "vs prev 6 months";
+    case "1Y": return "vs prev year";
     case "custom": return "vs prev period";
   }
 }
@@ -168,7 +176,7 @@ export default function OverviewPage() {
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <div className="flex bg-muted rounded-lg p-0.5">
-            {(["7D", "4W", "3M", "custom"] as PeriodKey[]).map((p) => (
+            {(["7D", "4W", "3M", "6M", "1Y", "custom"] as PeriodKey[]).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
