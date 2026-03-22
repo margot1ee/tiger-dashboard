@@ -8,7 +8,7 @@ import {
   followerTrend,
   trafficData,
 } from "@/lib/demo-data";
-import { useYouTubeData, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics } from "@/lib/hooks";
+import { useYouTubeData, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data } from "@/lib/hooks";
 import {
   Globe,
   Eye,
@@ -85,6 +85,8 @@ export default function OverviewPage() {
   const { data: xData } = useXData();
   const { data: dbMetrics } = useChannelMetrics(true);
   const { comparisons, prevFromStr, prevToStr } = useComparisonMetrics(from, to);
+  const { data: ga4Data } = useGA4Data(from, to);
+  const { data: ga4PrevData } = useGA4Data(prevFromStr, prevToStr);
 
   // Priority: manual DB > auto DB > live API > demo data
   const mergedMetrics = { ...channelMetrics };
@@ -133,15 +135,22 @@ export default function OverviewPage() {
     (sum, ch) => sum + ch.followers,
     0
   );
-  const latestTraffic = trafficData[trafficData.length - 1];
-  const prevTraffic = trafficData[trafficData.length - 8];
-  const trafficChange = prevTraffic
-    ? Math.round(
-        ((latestTraffic.visitors - prevTraffic.visitors) / prevTraffic.visitors) *
-          100 *
-          10
-      ) / 10
+
+  // GA4 period data
+  const ga4Visitors = ga4Data?.summary?.totalVisitors ?? trafficData[trafficData.length - 1]?.visitors ?? 0;
+  const ga4Pageviews = ga4Data?.summary?.totalPageviews ?? trafficData[trafficData.length - 1]?.pageviews ?? 0;
+  const ga4PrevVisitors = ga4PrevData?.summary?.totalVisitors ?? 0;
+  const ga4PrevPageviews = ga4PrevData?.summary?.totalPageviews ?? 0;
+
+  const visitorsChange = ga4PrevVisitors > 0
+    ? Math.round(((ga4Visitors - ga4PrevVisitors) / ga4PrevVisitors) * 1000) / 10
     : 0;
+  const pageviewsChange = ga4PrevPageviews > 0
+    ? Math.round(((ga4Pageviews - ga4PrevPageviews) / ga4PrevPageviews) * 1000) / 10
+    : 0;
+
+  // Use GA4 daily data for chart if available
+  const chartTrafficData = ga4Data?.daily ?? trafficData;
 
   const periodLabel = getPeriodLabel(period);
 
@@ -217,16 +226,16 @@ export default function OverviewPage() {
           icon={<Globe className="h-4 w-4" />}
         />
         <MetricCard
-          title="Daily Visitors (GA4)"
-          value={formatNumber(latestTraffic.visitors)}
-          change={trafficChange}
+          title="Visitors (GA4)"
+          value={formatNumber(ga4Visitors)}
+          change={visitorsChange}
           changeLabel={periodLabel}
           icon={<Eye className="h-4 w-4" />}
         />
         <MetricCard
-          title="Daily Pageviews"
-          value={formatNumber(latestTraffic.pageviews)}
-          change={5.2}
+          title="Pageviews"
+          value={formatNumber(ga4Pageviews)}
+          change={pageviewsChange}
           changeLabel={periodLabel}
         />
         <MetricCard
@@ -273,7 +282,7 @@ export default function OverviewPage() {
         <TabsContent value="traffic">
           <TrendChart
             title="Daily Traffic (Last 30 Days)"
-            data={trafficData}
+            data={chartTrafficData}
             lines={[
               { dataKey: "visitors", color: "#f97316", name: "Visitors" },
               { dataKey: "pageviews", color: "#3b82f6", name: "Pageviews" },

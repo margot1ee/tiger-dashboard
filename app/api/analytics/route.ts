@@ -2,21 +2,25 @@ import { NextResponse } from "next/server";
 import { getGoogleAuth } from "@/lib/google-auth";
 import { google } from "googleapis";
 
-export async function GET() {
+export async function GET(request: Request) {
   const propertyId = process.env.GA4_PROPERTY_ID;
   if (!propertyId) {
     return NextResponse.json({ error: "GA4_PROPERTY_ID not set" }, { status: 500 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const startDate = searchParams.get("from") || "30daysAgo";
+  const endDate = searchParams.get("to") || "today";
+
   try {
     const auth = getGoogleAuth();
     const analyticsData = google.analyticsdata({ version: "v1beta", auth });
 
-    // Daily visitors & pageviews (last 30 days)
+    // Daily visitors & pageviews
     const dailyReport = await analyticsData.properties.runReport({
       property: `properties/${propertyId}`,
       requestBody: {
-        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        dateRanges: [{ startDate, endDate }],
         dimensions: [{ name: "date" }],
         metrics: [
           { name: "activeUsers" },
@@ -42,7 +46,7 @@ export async function GET() {
     const sourcesReport = await analyticsData.properties.runReport({
       property: `properties/${propertyId}`,
       requestBody: {
-        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        dateRanges: [{ startDate, endDate }],
         dimensions: [{ name: "sessionDefaultChannelGroup" }],
         metrics: [{ name: "activeUsers" }, { name: "screenPageViews" }],
         orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
@@ -70,7 +74,7 @@ export async function GET() {
     const pagesReport = await analyticsData.properties.runReport({
       property: `properties/${propertyId}`,
       requestBody: {
-        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        dateRanges: [{ startDate, endDate }],
         dimensions: [{ name: "pageTitle" }],
         metrics: [{ name: "screenPageViews" }, { name: "averageSessionDuration" }],
         orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
@@ -93,7 +97,7 @@ export async function GET() {
     const countryReport = await analyticsData.properties.runReport({
       property: `properties/${propertyId}`,
       requestBody: {
-        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        dateRanges: [{ startDate, endDate }],
         dimensions: [{ name: "country" }],
         metrics: [{ name: "activeUsers" }],
         orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],

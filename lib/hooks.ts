@@ -48,8 +48,9 @@ export interface GA4Data {
   regions: { name: string; value: number; color: string }[];
   summary: { totalVisitors: number; totalPageviews: number };
 }
-export function useGA4Data() {
-  return useApiData<GA4Data>("/api/analytics");
+export function useGA4Data(from?: string, to?: string) {
+  const params = from && to ? `?from=${from}&to=${to}` : "";
+  return useApiData<GA4Data>(`/api/analytics${params}`);
 }
 
 // Search Console
