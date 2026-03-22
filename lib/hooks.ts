@@ -130,3 +130,53 @@ export function useChannelMetricsByChannel(channel: string) {
     `/api/metrics?channel=${channel}`
   );
 }
+
+export function useChannelMetricsRange(from: string, to: string) {
+  return useApiData<ChannelMetricsResponse>(
+    `/api/metrics?from=${from}&to=${to}`
+  );
+}
+
+// Comparison hook: fetches current period + previous period
+export interface ComparisonResult {
+  channel: string;
+  current: ChannelMetric | null;
+  previous: ChannelMetric | null;
+  changePercent: number | null;
+}
+
+export function useComparisonMetrics(from: string, to: string) {
+  // Calculate previous period (same duration, immediately before)
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  const duration = toDate.getTime() - fromDate.getTime();
+  const prevTo = new Date(fromDate.getTime() - 1); // day before current from
+  const prevFrom = new Date(prevTo.getTime() - duration);
+  const prevFromStr = prevFrom.toISOString().split("T")[0];
+  const prevToStr = prevTo.toISOString().split("T")[0];
+
+  const { data: currentData, loading: l1 } = useChannelMetricsRange(from, to);
+  const { data: prevData, loading: l2 } = useChannelMetricsRange(prevFromStr, prevToStr);
+
+  const comparisons: ComparisonResult[] = [];
+
+  if (currentData?.metrics && prevData?.metrics) {
+    const channels = ["substack", "x", "linkedin", "youtube", "telegram"];
+    for (const ch of channels) {
+      const curr = currentData.metrics.find((m) => m.channel === ch) || null;
+      const prev = prevData.metrics.find((m) => m.channel === ch) || null;
+      let changePercent: number | null = null;
+      if (curr?.followers != null && prev?.followers != null && prev.followers > 0) {
+        changePercent = Math.round(((curr.followers - prev.followers) / prev.followers) * 1000) / 10;
+      }
+      comparisons.push({ channel: ch, current: curr, previous: prev, changePercent });
+    }
+  }
+
+  return {
+    comparisons,
+    loading: l1 || l2,
+    prevFromStr,
+    prevToStr,
+  };
+}
