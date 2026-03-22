@@ -34,7 +34,7 @@ export const channelMetrics = {
   },
   x: {
     name: "X",
-    followers: 18700,
+    followers: 9293,
     change: 1.8,
     color: "#000000",
   },
