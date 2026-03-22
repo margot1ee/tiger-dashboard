@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { channelMetrics } from "@/lib/demo-data";
+import { useYouTubeData, useTelegramData } from "@/lib/hooks";
 import { Mail, Twitter, Linkedin, Youtube, Send, ArrowRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const channelConfig: Record<string, { icon: React.ReactNode; description: string; href: string }> = {
@@ -40,6 +42,22 @@ function formatNumber(n: number) {
 }
 
 export default function ChannelsPage() {
+  const { data: ytData } = useYouTubeData();
+  const { data: tgData } = useTelegramData();
+
+  // Merge real data
+  const mergedMetrics = { ...channelMetrics };
+  if (ytData) {
+    mergedMetrics.youtube = { ...mergedMetrics.youtube, followers: ytData.channel.subscribers };
+  }
+  if (tgData) {
+    mergedMetrics.telegram = { ...mergedMetrics.telegram, followers: tgData.channel.members };
+  }
+
+  const liveChannels = new Set<string>();
+  if (ytData) liveChannels.add("youtube");
+  if (tgData) liveChannels.add("telegram");
+
   return (
     <div className="space-y-6">
       <div>
@@ -49,8 +67,9 @@ export default function ChannelsPage() {
         </p>
       </div>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.entries(channelMetrics).map(([key, ch]) => {
+        {Object.entries(mergedMetrics).map(([key, ch]) => {
           const config = channelConfig[key];
+          const isLive = liveChannels.has(key);
           return (
             <Link key={key} href={config.href}>
               <Card className="hover:border-orange-300 transition-colors cursor-pointer h-full">
@@ -62,7 +81,10 @@ export default function ChannelsPage() {
                     {config.icon}
                   </div>
                   <div className="flex-1">
-                    <CardTitle className="text-base">{ch.name}</CardTitle>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      {ch.name}
+                      {isLive && <Badge className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0">LIVE</Badge>}
+                    </CardTitle>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {config.description}
                     </p>
@@ -74,15 +96,17 @@ export default function ChannelsPage() {
                     <span className="text-2xl font-bold">
                       {formatNumber(ch.followers)}
                     </span>
-                    <span
-                      className={cn(
-                        "text-sm font-medium",
-                        ch.change > 0 ? "text-green-500" : "text-red-500"
-                      )}
-                    >
-                      {ch.change > 0 ? "+" : ""}
-                      {ch.change}%
-                    </span>
+                    {!isLive && (
+                      <span
+                        className={cn(
+                          "text-sm font-medium",
+                          ch.change > 0 ? "text-green-500" : "text-red-500"
+                        )}
+                      >
+                        {ch.change > 0 ? "+" : ""}
+                        {ch.change}%
+                      </span>
+                    )}
                   </div>
                 </CardContent>
               </Card>
