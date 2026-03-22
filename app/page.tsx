@@ -9,7 +9,6 @@ import {
 } from "@/lib/demo-data";
 import { useYouTubeData, useTelegramData, useXData } from "@/lib/hooks";
 import {
-  Youtube,
   Globe,
   Eye,
   Clock,
@@ -18,13 +17,14 @@ import { XIcon } from "@/components/icons/x-icon";
 import { SubstackIcon } from "@/components/icons/substack-icon";
 import { LinkedInIcon } from "@/components/icons/linkedin-icon";
 import { TelegramIcon } from "@/components/icons/telegram-icon";
+import { YouTubeIcon } from "@/components/icons/youtube-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const channelIcons: Record<string, React.ReactNode> = {
   substack: <SubstackIcon className="h-4 w-4" />,
   x: <XIcon className="h-4 w-4" />,
   linkedin: <LinkedInIcon className="h-4 w-4" />,
-  youtube: <Youtube className="h-4 w-4" />,
+  youtube: <YouTubeIcon className="h-4 w-4" />,
   telegram: <TelegramIcon className="h-4 w-4" />,
 };
 

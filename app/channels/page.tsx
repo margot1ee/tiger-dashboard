@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { channelMetrics } from "@/lib/demo-data";
 import { useYouTubeData, useTelegramData, useXData } from "@/lib/hooks";
-import { Youtube, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { YouTubeIcon } from "@/components/icons/youtube-icon";
 import { XIcon } from "@/components/icons/x-icon";
 import { SubstackIcon } from "@/components/icons/substack-icon";
 import { LinkedInIcon } from "@/components/icons/linkedin-icon";
@@ -29,7 +30,7 @@ const channelConfig: Record<string, { icon: React.ReactNode; description: string
     href: "/channels/linkedin",
   },
   youtube: {
-    icon: <Youtube className="h-6 w-6" />,
+    icon: <YouTubeIcon className="h-6 w-6" />,
     description: "Subscribers, views & watch time",
     href: "/channels/youtube",
   },
