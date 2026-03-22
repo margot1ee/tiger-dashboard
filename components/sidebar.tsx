@@ -59,7 +59,7 @@ export function Sidebar() {
                 className="h-[24px] w-auto"
               />
               <div>
-                <h1 className="font-bold text-sm tracking-tight text-foreground">
+                <h1 className="font-bold text-base tracking-tight text-foreground">
                   Tiger Research
                 </h1>
                 <p className="text-[10px] text-muted-foreground -mt-0.5">
