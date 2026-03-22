@@ -35,11 +35,11 @@ const channelIcons: Record<string, React.ReactNode> = {
 };
 
 const channelColors: Record<string, string> = {
-  substack: "bg-orange-50 border-orange-200",
-  x: "bg-gray-50 border-gray-200",
-  linkedin: "bg-blue-50 border-blue-200",
-  youtube: "bg-red-50 border-red-200",
-  telegram: "bg-cyan-50 border-cyan-200",
+  substack: "",
+  x: "",
+  linkedin: "",
+  youtube: "",
+  telegram: "",
 };
 
 const channelOrder = ["substack", "x", "linkedin", "youtube", "telegram"];
@@ -193,22 +193,11 @@ export default function OverviewPage() {
         </div>
 
         {/* Total Followers */}
-        <Card className="mb-4 bg-gradient-to-r from-slate-50 to-white border">
-          <CardContent className="py-4 px-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-foreground/5 flex items-center justify-center">
-                <Users className="h-5 w-5 text-foreground" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Total Followers</p>
-                <p className="text-3xl font-bold tracking-tight">{formatNumber(totalFollowers)}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">{periodLabel}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-center gap-3 border rounded-lg px-4 py-2.5 mb-4">
+          <Users className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Total Followers</span>
+          <span className="text-xl font-bold">{formatNumber(totalFollowers)}</span>
+        </div>
 
         {/* Channel Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
