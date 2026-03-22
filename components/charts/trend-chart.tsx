@@ -12,12 +12,23 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+interface LineConfig {
+  dataKey: string;
+  color: string;
+  name: string;
+  yAxisId?: "left" | "right";
+  strokeDasharray?: string;
+}
+
 interface TrendChartProps {
   title: string;
   data: Record<string, unknown>[];
-  lines: { dataKey: string; color: string; name: string }[];
+  lines: LineConfig[];
   xAxisKey?: string;
   height?: number;
+  dualAxis?: boolean;
+  rightAxisLabel?: string;
+  leftAxisLabel?: string;
 }
 
 export function TrendChart({
@@ -26,6 +37,9 @@ export function TrendChart({
   lines,
   xAxisKey = "date",
   height = 300,
+  dualAxis = false,
+  rightAxisLabel,
+  leftAxisLabel,
 }: TrendChartProps) {
   return (
     <Card>
@@ -41,7 +55,21 @@ export function TrendChart({
               tick={{ fontSize: 12 }}
               className="text-muted-foreground"
             />
-            <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
+            <YAxis
+              yAxisId="left"
+              tick={{ fontSize: 12 }}
+              className="text-muted-foreground"
+              label={leftAxisLabel ? { value: leftAxisLabel, angle: -90, position: "insideLeft", style: { fontSize: 11, fill: "#9ca3af" } } : undefined}
+            />
+            {dualAxis && (
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                tick={{ fontSize: 12 }}
+                className="text-muted-foreground"
+                label={rightAxisLabel ? { value: rightAxisLabel, angle: 90, position: "insideRight", style: { fontSize: 11, fill: "#9ca3af" } } : undefined}
+              />
+            )}
             <Tooltip
               contentStyle={{
                 backgroundColor: "hsl(var(--card))",
@@ -61,6 +89,8 @@ export function TrendChart({
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4 }}
+                yAxisId={line.yAxisId || "left"}
+                strokeDasharray={line.strokeDasharray}
               />
             ))}
           </LineChart>

@@ -245,9 +245,13 @@ export default function TrafficPage() {
           <TrendChart
             title="Search Performance"
             data={searchTrend}
+            dualAxis
+            leftAxisLabel="Impressions"
+            rightAxisLabel="Clicks / CTR%"
             lines={[
-              { dataKey: "impressions", color: "#8b5cf6", name: "Impressions" },
-              { dataKey: "clicks", color: "#22c55e", name: "Clicks" },
+              { dataKey: "impressions", color: "#8b5cf6", name: "Impressions", yAxisId: "left" },
+              { dataKey: "clicks", color: "#22c55e", name: "Clicks", yAxisId: "right" },
+              { dataKey: "ctr", color: "#f97316", name: "CTR %", yAxisId: "right", strokeDasharray: "5 5" },
             ]}
           />
         </div>
