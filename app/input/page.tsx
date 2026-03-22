@@ -12,8 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CheckCircle2, Mail, Linkedin } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { XIcon } from "@/components/icons/x-icon";
+import { SubstackIcon } from "@/components/icons/substack-icon";
+import { LinkedInIcon } from "@/components/icons/linkedin-icon";
 
 interface ChannelInput {
   channel: string;
@@ -24,7 +26,7 @@ interface ChannelInput {
 const channels: ChannelInput[] = [
   {
     channel: "Substack",
-    icon: <Mail className="h-4 w-4" />,
+    icon: <SubstackIcon className="h-4 w-4" />,
     fields: [
       { key: "subscribers", label: "Total Subscribers", placeholder: "e.g. 22500" },
       { key: "openRate", label: "Avg. Open Rate (%)", placeholder: "e.g. 42" },
@@ -43,7 +45,7 @@ const channels: ChannelInput[] = [
   },
   {
     channel: "LinkedIn",
-    icon: <Linkedin className="h-4 w-4" />,
+    icon: <LinkedInIcon className="h-4 w-4" />,
     fields: [
       { key: "followers", label: "Total Followers", placeholder: "e.g. 1400" },
       { key: "impressions", label: "Weekly Impressions", placeholder: "e.g. 8500" },

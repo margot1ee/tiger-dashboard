@@ -4,14 +4,17 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { channelMetrics } from "@/lib/demo-data";
 import { useYouTubeData, useTelegramData } from "@/lib/hooks";
-import { Mail, Linkedin, Youtube, Send, ArrowRight } from "lucide-react";
+import { Youtube, ArrowRight } from "lucide-react";
 import { XIcon } from "@/components/icons/x-icon";
+import { SubstackIcon } from "@/components/icons/substack-icon";
+import { LinkedInIcon } from "@/components/icons/linkedin-icon";
+import { TelegramIcon } from "@/components/icons/telegram-icon";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const channelConfig: Record<string, { icon: React.ReactNode; description: string; href: string }> = {
   substack: {
-    icon: <Mail className="h-6 w-6" />,
+    icon: <SubstackIcon className="h-6 w-6" />,
     description: "Newsletter subscribers & post performance",
     href: "/channels/substack",
   },
@@ -21,7 +24,7 @@ const channelConfig: Record<string, { icon: React.ReactNode; description: string
     href: "/channels/x",
   },
   linkedin: {
-    icon: <Linkedin className="h-6 w-6" />,
+    icon: <LinkedInIcon className="h-6 w-6" />,
     description: "Company page followers & posts",
     href: "/channels/linkedin",
   },
@@ -31,7 +34,7 @@ const channelConfig: Record<string, { icon: React.ReactNode; description: string
     href: "/channels/youtube",
   },
   telegram: {
-    icon: <Send className="h-6 w-6" />,
+    icon: <TelegramIcon className="h-6 w-6" />,
     description: "Group members & activity",
     href: "/channels/telegram",
   },

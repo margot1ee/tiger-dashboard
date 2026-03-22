@@ -9,23 +9,23 @@ import {
 } from "@/lib/demo-data";
 import { useYouTubeData, useTelegramData } from "@/lib/hooks";
 import {
-  Mail,
-  Linkedin,
   Youtube,
-  Send,
   Globe,
   Eye,
   Clock,
 } from "lucide-react";
 import { XIcon } from "@/components/icons/x-icon";
+import { SubstackIcon } from "@/components/icons/substack-icon";
+import { LinkedInIcon } from "@/components/icons/linkedin-icon";
+import { TelegramIcon } from "@/components/icons/telegram-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const channelIcons: Record<string, React.ReactNode> = {
-  substack: <Mail className="h-4 w-4" />,
+  substack: <SubstackIcon className="h-4 w-4" />,
   x: <XIcon className="h-4 w-4" />,
-  linkedin: <Linkedin className="h-4 w-4" />,
+  linkedin: <LinkedInIcon className="h-4 w-4" />,
   youtube: <Youtube className="h-4 w-4" />,
-  telegram: <Send className="h-4 w-4" />,
+  telegram: <TelegramIcon className="h-4 w-4" />,
 };
 
 function formatNumber(n: number) {
