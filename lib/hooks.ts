@@ -62,3 +62,11 @@ export interface SearchConsoleData {
 export function useSearchConsoleData() {
   return useApiData<SearchConsoleData>("/api/search-console");
 }
+
+// Telegram
+interface TelegramData {
+  channel: { title: string; username: string; description: string; members: number; type: string };
+}
+export function useTelegramData() {
+  return useApiData<TelegramData>("/api/telegram");
+}

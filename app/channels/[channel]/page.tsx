@@ -4,7 +4,7 @@ import { use } from "react";
 import { MetricCard } from "@/components/metric-card";
 import { TrendChart } from "@/components/charts/trend-chart";
 import { channelMetrics } from "@/lib/demo-data";
-import { useYouTubeData, useSubstackData } from "@/lib/hooks";
+import { useYouTubeData, useSubstackData, useTelegramData } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -143,6 +143,50 @@ function SubstackDetail() {
   );
 }
 
+function TelegramDetail() {
+  const { data, loading, error } = useTelegramData();
+
+  if (loading) return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading Telegram data...</div>;
+  if (error || !data) return <p className="text-sm text-muted-foreground">Telegram Bot not connected. Add TELEGRAM_BOT_TOKEN to Vercel env vars.</p>;
+
+  return (
+    <>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard title="Members" value={data.channel.members.toLocaleString()} icon={<Badge className="bg-blue-100 text-blue-700 text-[10px]">LIVE</Badge>} />
+        <MetricCard title="Channel Type" value={data.channel.type === "channel" ? "Channel" : "Group"} />
+        <MetricCard title="Username" value={`@${data.channel.username}`} />
+        <MetricCard title="Status" value="Connected" icon={<Badge className="bg-green-100 text-green-700 text-[10px]">Active</Badge>} />
+      </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Channel Info</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Title</span>
+              <span className="font-medium">{data.channel.title}</span>
+            </div>
+            {data.channel.description && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Description</span>
+                <span className="font-medium max-w-[300px] text-right">{data.channel.description}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Link</span>
+              <a href={`https://t.me/${data.channel.username}`} target="_blank" rel="noopener noreferrer" className="font-medium text-orange-500 hover:underline">
+                t.me/{data.channel.username}
+              </a>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
 function DefaultDetail({ channel, metrics }: { channel: string; metrics: { name: string; followers: number; change: number; color: string } }) {
   const trend = generateChannelTrend(channel);
 
@@ -223,7 +267,8 @@ export default function ChannelDetailPage({
 
       {channel === "youtube" && <YouTubeDetail />}
       {channel === "substack" && <SubstackDetail />}
-      {channel !== "youtube" && channel !== "substack" && (
+      {channel === "telegram" && <TelegramDetail />}
+      {channel !== "youtube" && channel !== "substack" && channel !== "telegram" && (
         <DefaultDetail channel={channel} metrics={metrics} />
       )}
     </div>
