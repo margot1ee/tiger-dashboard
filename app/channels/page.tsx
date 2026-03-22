@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { channelMetrics } from "@/lib/demo-data";
-import { useYouTubeData, useTelegramData } from "@/lib/hooks";
+import { useYouTubeData, useTelegramData, useXData } from "@/lib/hooks";
 import { Youtube, ArrowRight } from "lucide-react";
 import { XIcon } from "@/components/icons/x-icon";
 import { SubstackIcon } from "@/components/icons/substack-icon";
@@ -48,6 +48,7 @@ function formatNumber(n: number) {
 export default function ChannelsPage() {
   const { data: ytData } = useYouTubeData();
   const { data: tgData } = useTelegramData();
+  const { data: xData } = useXData();
 
   // Merge real data
   const mergedMetrics = { ...channelMetrics };
@@ -57,10 +58,14 @@ export default function ChannelsPage() {
   if (tgData) {
     mergedMetrics.telegram = { ...mergedMetrics.telegram, followers: tgData.channel.members };
   }
+  if (xData) {
+    mergedMetrics.x = { ...mergedMetrics.x, followers: xData.user.followers };
+  }
 
   const liveChannels = new Set<string>();
   if (ytData) liveChannels.add("youtube");
   if (tgData) liveChannels.add("telegram");
+  if (xData) liveChannels.add("x");
 
   return (
     <div className="space-y-6">

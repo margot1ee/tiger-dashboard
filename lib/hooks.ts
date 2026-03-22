@@ -70,3 +70,34 @@ interface TelegramData {
 export function useTelegramData() {
   return useApiData<TelegramData>("/api/telegram");
 }
+
+// X (Twitter)
+interface XTweetMetrics {
+  retweets: number;
+  replies: number;
+  likes: number;
+  quotes: number;
+  impressions: number;
+}
+interface XTweet {
+  id: string;
+  text: string;
+  createdAt: string;
+  metrics: XTweetMetrics;
+}
+export interface XData {
+  user: {
+    name: string;
+    username: string;
+    description: string;
+    profileImageUrl: string;
+    createdAt: string;
+    followers: number;
+    following: number;
+    tweetCount: number;
+  };
+  tweets: XTweet[];
+}
+export function useXData() {
+  return useApiData<XData>("/api/x");
+}

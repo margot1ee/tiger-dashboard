@@ -4,7 +4,7 @@ import { use } from "react";
 import { MetricCard } from "@/components/metric-card";
 import { TrendChart } from "@/components/charts/trend-chart";
 import { channelMetrics } from "@/lib/demo-data";
-import { useYouTubeData, useSubstackData, useTelegramData } from "@/lib/hooks";
+import { useYouTubeData, useSubstackData, useTelegramData, useXData } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -17,7 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format, subDays } from "date-fns";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Eye, Heart, MessageCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Eye, Heart, MessageCircle, Loader2, Repeat2, Quote } from "lucide-react";
 
 const channelUrls: Record<string, string> = {
   substack: "https://reports.tiger-research.com/",
@@ -187,6 +187,88 @@ function TelegramDetail() {
   );
 }
 
+function XDetail() {
+  const { data, loading, error } = useXData();
+
+  if (loading) return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading X data...</div>;
+  if (error || !data) return <p className="text-sm text-muted-foreground">X API not connected. Add X_BEARER_TOKEN to Vercel env vars.</p>;
+
+  return (
+    <>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard title="Followers" value={data.user.followers.toLocaleString()} icon={<Badge className="bg-gray-100 text-gray-700 text-[10px]">LIVE</Badge>} />
+        <MetricCard title="Following" value={data.user.following.toLocaleString()} />
+        <MetricCard title="Tweets" value={data.user.tweetCount.toLocaleString()} />
+        <MetricCard title="Account" value={`@${data.user.username}`} />
+      </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Account Info</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Name</span>
+              <span className="font-medium">{data.user.name}</span>
+            </div>
+            {data.user.description && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Bio</span>
+                <span className="font-medium max-w-[400px] text-right">{data.user.description}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Link</span>
+              <a href={`https://x.com/${data.user.username}`} target="_blank" rel="noopener noreferrer" className="font-medium text-orange-500 hover:underline">
+                x.com/{data.user.username}
+              </a>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Recent Tweets</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tweet</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right"><Eye className="h-3.5 w-3.5 inline mr-1" />Impressions</TableHead>
+                <TableHead className="text-right"><Heart className="h-3.5 w-3.5 inline mr-1" />Likes</TableHead>
+                <TableHead className="text-right"><Repeat2 className="h-3.5 w-3.5 inline mr-1" />Retweets</TableHead>
+                <TableHead className="text-right"><MessageCircle className="h-3.5 w-3.5 inline mr-1" />Replies</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.tweets.map((tweet) => (
+                <TableRow key={tweet.id}>
+                  <TableCell className="font-medium max-w-[300px]">
+                    <a href={`https://x.com/${data.user.username}/status/${tweet.id}`} target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors line-clamp-2 text-xs">
+                      {tweet.text}
+                    </a>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                    {new Date(tweet.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right">{tweet.metrics.impressions.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{tweet.metrics.likes.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{tweet.metrics.retweets.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{tweet.metrics.replies.toLocaleString()}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
 function DefaultDetail({ channel, metrics }: { channel: string; metrics: { name: string; followers: number; change: number; color: string } }) {
   const trend = generateChannelTrend(channel);
 
@@ -268,7 +350,8 @@ export default function ChannelDetailPage({
       {channel === "youtube" && <YouTubeDetail />}
       {channel === "substack" && <SubstackDetail />}
       {channel === "telegram" && <TelegramDetail />}
-      {channel !== "youtube" && channel !== "substack" && channel !== "telegram" && (
+      {channel === "x" && <XDetail />}
+      {channel !== "youtube" && channel !== "substack" && channel !== "telegram" && channel !== "x" && (
         <DefaultDetail channel={channel} metrics={metrics} />
       )}
     </div>

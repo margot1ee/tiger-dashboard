@@ -7,7 +7,7 @@ import {
   followerTrend,
   trafficData,
 } from "@/lib/demo-data";
-import { useYouTubeData, useTelegramData } from "@/lib/hooks";
+import { useYouTubeData, useTelegramData, useXData } from "@/lib/hooks";
 import {
   Youtube,
   Globe,
@@ -36,6 +36,7 @@ function formatNumber(n: number) {
 export default function OverviewPage() {
   const { data: ytData } = useYouTubeData();
   const { data: tgData } = useTelegramData();
+  const { data: xData } = useXData();
 
   // Merge real data with demo data
   const mergedMetrics = { ...channelMetrics };
@@ -49,6 +50,12 @@ export default function OverviewPage() {
     mergedMetrics.telegram = {
       ...mergedMetrics.telegram,
       followers: tgData.channel.members,
+    };
+  }
+  if (xData) {
+    mergedMetrics.x = {
+      ...mergedMetrics.x,
+      followers: xData.user.followers,
     };
   }
 
