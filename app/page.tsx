@@ -254,19 +254,10 @@ export default function OverviewPage() {
         </h2>
 
         {/* Total Followers Bar */}
-        <div className="flex items-center justify-between bg-muted/50 border rounded-lg px-4 py-2.5 mb-4">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">Total Followers</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-bold">{formatNumber(totalFollowers)}</span>
-            {getChange("substack") !== undefined && (
-              <span className={`text-xs font-medium ${2.8 >= 0 ? "text-green-500" : "text-red-500"}`}>
-                {periodLabel}
-              </span>
-            )}
-          </div>
+        <div className="flex items-center gap-4 bg-muted/50 border rounded-lg px-5 py-3 mb-4">
+          <Users className="h-5 w-5 text-foreground" />
+          <span className="text-sm font-medium">Total Followers</span>
+          <span className="text-2xl font-bold">{formatNumber(totalFollowers)}</span>
         </div>
 
         {/* Channel Cards - Substack first */}
