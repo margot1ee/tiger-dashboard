@@ -5,6 +5,7 @@ import { MetricCard } from "@/components/metric-card";
 import { TrendChart } from "@/components/charts/trend-chart";
 import { DonutChart } from "@/components/charts/donut-chart";
 import { BarChart } from "@/components/charts/bar-chart";
+import { SearchChart } from "@/components/charts/search-chart";
 import { useGA4Data, useSearchConsoleData } from "@/lib/hooks";
 import {
   trafficData as demoTraffic,
@@ -242,17 +243,9 @@ export default function TrafficPage() {
       {/* Search trend + Region */}
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          <TrendChart
+          <SearchChart
             title="Search Performance"
             data={searchTrend}
-            dualAxis
-            leftAxisLabel="Impressions"
-            rightAxisLabel="Clicks / CTR%"
-            lines={[
-              { dataKey: "impressions", color: "#8b5cf6", name: "Impressions", yAxisId: "left" },
-              { dataKey: "clicks", color: "#22c55e", name: "Clicks", yAxisId: "right" },
-              { dataKey: "ctr", color: "#f97316", name: "CTR %", yAxisId: "right", strokeDasharray: "5 5" },
-            ]}
           />
         </div>
         <DonutChart title="Traffic by Region" data={regionData} />
