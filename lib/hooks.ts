@@ -60,8 +60,9 @@ export interface SearchConsoleData {
   pages: { page: string; clicks: number; impressions: number; position: number; ctr: number }[];
   summary: { totalImpressions: number; totalClicks: number; avgPosition: number; avgCtr: number };
 }
-export function useSearchConsoleData() {
-  return useApiData<SearchConsoleData>("/api/search-console");
+export function useSearchConsoleData(from?: string, to?: string) {
+  const params = from && to ? `?from=${from}&to=${to}` : "";
+  return useApiData<SearchConsoleData>(`/api/search-console${params}`);
 }
 
 // Telegram

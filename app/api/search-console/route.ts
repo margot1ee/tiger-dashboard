@@ -2,19 +2,23 @@ import { NextResponse } from "next/server";
 import { getGoogleAuth } from "@/lib/google-auth";
 import { google } from "googleapis";
 
-export async function GET() {
+export async function GET(request: Request) {
   const siteUrl = process.env.SEARCH_CONSOLE_SITE_URL;
   if (!siteUrl) {
     return NextResponse.json({ error: "SEARCH_CONSOLE_SITE_URL not set" }, { status: 500 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const fromParam = searchParams.get("from");
+  const toParam = searchParams.get("to");
+
   try {
     const auth = getGoogleAuth();
     const searchconsole = google.searchconsole({ version: "v1", auth });
 
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 30);
+    const endDate = toParam ? new Date(toParam) : new Date();
+    const startDate = fromParam ? new Date(fromParam) : new Date();
+    if (!fromParam) startDate.setDate(endDate.getDate() - 30);
 
     const formatDate = (d: Date) => d.toISOString().split("T")[0];
 
