@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { channelMetrics } from "@/lib/demo-data";
-import { useYouTubeData, useTelegramData, useXData } from "@/lib/hooks";
+import { useYouTubeData, useTelegramData, useXData, useChannelMetrics } from "@/lib/hooks";
 import { ArrowRight } from "lucide-react";
 import { YouTubeIcon } from "@/components/icons/youtube-icon";
 import { XIcon } from "@/components/icons/x-icon";
@@ -50,8 +50,9 @@ export default function ChannelsPage() {
   const { data: ytData } = useYouTubeData();
   const { data: tgData } = useTelegramData();
   const { data: xData } = useXData();
+  const { data: dbMetrics } = useChannelMetrics(true);
 
-  // Merge real data
+  // Priority: manual DB > auto DB > live API > demo data
   const mergedMetrics = { ...channelMetrics };
   if (ytData) {
     mergedMetrics.youtube = { ...mergedMetrics.youtube, followers: ytData.channel.subscribers };
@@ -63,10 +64,28 @@ export default function ChannelsPage() {
     mergedMetrics.x = { ...mergedMetrics.x, followers: xData.user.followers };
   }
 
+  // DB data overrides (highest priority)
+  const dbSourceMap: Record<string, string> = {};
+  if (dbMetrics?.metrics) {
+    for (const row of dbMetrics.metrics) {
+      const key = row.channel as keyof typeof mergedMetrics;
+      if (mergedMetrics[key] && row.followers != null) {
+        mergedMetrics[key] = { ...mergedMetrics[key], followers: row.followers };
+        dbSourceMap[row.channel] = row.source;
+      }
+    }
+  }
+
   const liveChannels = new Set<string>();
   if (ytData) liveChannels.add("youtube");
   if (tgData) liveChannels.add("telegram");
   if (xData) liveChannels.add("x");
+  // Channels with DB data also count as "live"
+  if (dbMetrics?.metrics) {
+    for (const row of dbMetrics.metrics) {
+      if (row.followers != null) liveChannels.add(row.channel);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -93,7 +112,9 @@ export default function ChannelsPage() {
                   <div className="flex-1">
                     <CardTitle className="text-base flex items-center gap-2">
                       {ch.name}
-                      {isLive && <Badge className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0">LIVE</Badge>}
+                      {dbSourceMap[key] === "manual" && <Badge className="bg-orange-100 text-orange-700 text-[9px] px-1.5 py-0">MANUAL</Badge>}
+                      {dbSourceMap[key] === "auto" && <Badge className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0">DB</Badge>}
+                      {!dbSourceMap[key] && isLive && <Badge className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0">LIVE</Badge>}
                     </CardTitle>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {config.description}

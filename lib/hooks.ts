@@ -101,3 +101,32 @@ export interface XData {
 export function useXData() {
   return useApiData<XData>("/api/x");
 }
+
+// Channel Metrics from Supabase
+export interface ChannelMetric {
+  id: number;
+  channel: string;
+  date: string;
+  followers: number | null;
+  impressions: number | null;
+  engagements: number | null;
+  engagement_rate: number | null;
+  source: "auto" | "manual";
+  created_at: string;
+}
+
+interface ChannelMetricsResponse {
+  metrics: ChannelMetric[];
+}
+
+export function useChannelMetrics(latest = true) {
+  return useApiData<ChannelMetricsResponse>(
+    `/api/metrics${latest ? "?latest=true" : ""}`
+  );
+}
+
+export function useChannelMetricsByChannel(channel: string) {
+  return useApiData<ChannelMetricsResponse>(
+    `/api/metrics?channel=${channel}`
+  );
+}

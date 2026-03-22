@@ -4,7 +4,7 @@ import { use } from "react";
 import { MetricCard } from "@/components/metric-card";
 import { TrendChart } from "@/components/charts/trend-chart";
 import { channelMetrics } from "@/lib/demo-data";
-import { useYouTubeData, useSubstackData, useTelegramData } from "@/lib/hooks";
+import { useYouTubeData, useSubstackData, useTelegramData, useChannelMetricsByChannel } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -188,7 +188,9 @@ function TelegramDetail() {
 }
 
 function XDetail() {
-  // Static data from X profile page (scraped 2026-03-22)
+  const { data: dbData } = useChannelMetricsByChannel("x");
+
+  // Static fallback
   const xProfile = {
     name: "Tiger Research",
     username: "tiger_research",
@@ -198,14 +200,42 @@ function XDetail() {
     posts: 2810,
   };
 
+  // Override with DB data (manual > auto)
+  const latestDb = dbData?.metrics?.[0];
+  const followers = latestDb?.followers ?? xProfile.followers;
+  const impressions = latestDb?.impressions;
+  const engagements = latestDb?.engagements;
+  const engagementRate = latestDb?.engagement_rate;
+  const dataSource = latestDb?.source;
+  const dataDate = latestDb?.date;
+
   return (
     <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard title="Followers" value={xProfile.followers.toLocaleString()} icon={<Badge className="bg-gray-100 text-gray-700 text-[10px]">Mar 22</Badge>} />
+        <MetricCard
+          title="Followers"
+          value={followers.toLocaleString()}
+          icon={
+            dataSource === "manual"
+              ? <Badge className="bg-orange-100 text-orange-700 text-[10px]">Manual</Badge>
+              : <Badge className="bg-gray-100 text-gray-700 text-[10px]">{dataDate ? new Date(dataDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Mar 22"}</Badge>
+          }
+        />
         <MetricCard title="Following" value={xProfile.following.toLocaleString()} />
         <MetricCard title="Posts" value={xProfile.posts.toLocaleString()} />
-        <MetricCard title="Account" value={`@${xProfile.username}`} />
+        {impressions != null ? (
+          <MetricCard title="Impressions" value={formatNumber(impressions)} icon={dataSource === "manual" ? <Badge className="bg-orange-100 text-orange-700 text-[10px]">Manual</Badge> : undefined} />
+        ) : (
+          <MetricCard title="Account" value={`@${xProfile.username}`} />
+        )}
       </div>
+
+      {(engagements != null || engagementRate != null) && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {engagements != null && <MetricCard title="Engagements" value={formatNumber(engagements)} />}
+          {engagementRate != null && <MetricCard title="Engagement Rate" value={`${engagementRate}%`} />}
+        </div>
+      )}
 
       <Card>
         <CardHeader className="pb-2">
@@ -237,9 +267,69 @@ function XDetail() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            X API 무료 플랜이 폐지되어 수동 업데이트 방식으로 운영합니다. 최근 업데이트: 2026년 3월 22일.
+            {latestDb
+              ? `Data from Supabase (${dataSource}, updated ${dataDate}). `
+              : "X API 무료 플랜이 폐지되어 수동 업데이트 방식으로 운영합니다. 최근 업데이트: 2026년 3월 22일. "}
             Engagement 데이터(Impressions, Likes 등)는{" "}
             <Link href="/input" className="text-orange-500 hover:underline">Data Input</Link> 페이지에서 입력할 수 있습니다.
+          </p>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+function LinkedInDetail({ metrics }: { metrics: { name: string; followers: number; change: number; color: string } }) {
+  const { data: dbData } = useChannelMetricsByChannel("linkedin");
+  const trend = generateChannelTrend("linkedin");
+
+  const latestDb = dbData?.metrics?.[0];
+  const followers = latestDb?.followers ?? metrics.followers;
+  const impressions = latestDb?.impressions;
+  const engagements = latestDb?.engagements;
+  const dataSource = latestDb?.source;
+
+  return (
+    <>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          title="Followers"
+          value={followers.toLocaleString()}
+          change={metrics.change}
+          changeLabel="WoW"
+          icon={dataSource === "manual" ? <Badge className="bg-orange-100 text-orange-700 text-[10px]">Manual</Badge> : undefined}
+        />
+        <MetricCard title="Weekly Growth" value={`+${Math.floor(followers * metrics.change / 100)}`} change={metrics.change} />
+        {impressions != null ? (
+          <MetricCard title="Impressions" value={formatNumber(impressions)} />
+        ) : (
+          <MetricCard title="Avg. Impressions" value="8.5K" change={3.4} changeLabel="WoW" />
+        )}
+        {engagements != null ? (
+          <MetricCard title="Engagements" value={formatNumber(engagements)} />
+        ) : (
+          <MetricCard title="Engagement Rate" value="4.2%" change={0.8} changeLabel="WoW" />
+        )}
+      </div>
+
+      <TrendChart
+        title={`${metrics.name} Followers (Last 30 Days)`}
+        data={trend}
+        lines={[{ dataKey: "followers", color: metrics.color, name: "Followers" }]}
+        height={350}
+      />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Data Input</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            {latestDb
+              ? `Latest data from Supabase (${dataSource}, ${latestDb.date}). `
+              : ""}
+            Update LinkedIn stats via{" "}
+            <Link href="/input" className="text-orange-500 hover:underline">Data Input</Link>.
           </p>
         </CardContent>
       </Card>
@@ -329,7 +419,8 @@ export default function ChannelDetailPage({
       {channel === "substack" && <SubstackDetail />}
       {channel === "telegram" && <TelegramDetail />}
       {channel === "x" && <XDetail />}
-      {channel !== "youtube" && channel !== "substack" && channel !== "telegram" && channel !== "x" && (
+      {channel === "linkedin" && <LinkedInDetail metrics={metrics} />}
+      {channel !== "youtube" && channel !== "substack" && channel !== "telegram" && channel !== "x" && channel !== "linkedin" && (
         <DefaultDetail channel={channel} metrics={metrics} />
       )}
     </div>

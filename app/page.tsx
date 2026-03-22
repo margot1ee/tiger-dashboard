@@ -7,7 +7,7 @@ import {
   followerTrend,
   trafficData,
 } from "@/lib/demo-data";
-import { useYouTubeData, useTelegramData, useXData } from "@/lib/hooks";
+import { useYouTubeData, useTelegramData, useXData, useChannelMetrics } from "@/lib/hooks";
 import {
   Globe,
   Eye,
@@ -37,9 +37,12 @@ export default function OverviewPage() {
   const { data: ytData } = useYouTubeData();
   const { data: tgData } = useTelegramData();
   const { data: xData } = useXData();
+  const { data: dbMetrics } = useChannelMetrics(true);
 
-  // Merge real data with demo data
+  // Priority: manual DB > auto DB > live API > demo data
   const mergedMetrics = { ...channelMetrics };
+
+  // Layer 1: Live API data (lower priority than DB)
   if (ytData) {
     mergedMetrics.youtube = {
       ...mergedMetrics.youtube,
@@ -57,6 +60,19 @@ export default function OverviewPage() {
       ...mergedMetrics.x,
       followers: xData.user.followers,
     };
+  }
+
+  // Layer 2: DB data (highest priority - manual overrides auto)
+  if (dbMetrics?.metrics) {
+    for (const row of dbMetrics.metrics) {
+      const key = row.channel as keyof typeof mergedMetrics;
+      if (mergedMetrics[key] && row.followers != null) {
+        mergedMetrics[key] = {
+          ...mergedMetrics[key],
+          followers: row.followers,
+        };
+      }
+    }
   }
 
   const totalFollowers = Object.values(mergedMetrics).reduce(
