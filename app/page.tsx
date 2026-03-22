@@ -9,12 +9,15 @@ import {
   trafficData,
 } from "@/lib/demo-data";
 import { useYouTubeData, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data } from "@/lib/hooks";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Globe,
   Eye,
   Clock,
   Calendar,
   Users,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { XIcon } from "@/components/icons/x-icon";
 import { SubstackIcon } from "@/components/icons/substack-icon";
@@ -24,14 +27,21 @@ import { YouTubeIcon } from "@/components/icons/youtube-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const channelIcons: Record<string, React.ReactNode> = {
-  substack: <SubstackIcon className="h-4 w-4" />,
-  x: <XIcon className="h-4 w-4" />,
-  linkedin: <LinkedInIcon className="h-4 w-4" />,
-  youtube: <YouTubeIcon className="h-4 w-4" />,
-  telegram: <TelegramIcon className="h-4 w-4" />,
+  substack: <SubstackIcon className="h-5 w-5" />,
+  x: <XIcon className="h-5 w-5" />,
+  linkedin: <LinkedInIcon className="h-5 w-5" />,
+  youtube: <YouTubeIcon className="h-5 w-5" />,
+  telegram: <TelegramIcon className="h-5 w-5" />,
 };
 
-// Order: Substack first, then rest
+const channelColors: Record<string, string> = {
+  substack: "bg-orange-50 border-orange-200",
+  x: "bg-gray-50 border-gray-200",
+  linkedin: "bg-blue-50 border-blue-200",
+  youtube: "bg-red-50 border-red-200",
+  telegram: "bg-cyan-50 border-cyan-200",
+};
+
 const channelOrder = ["substack", "x", "linkedin", "youtube", "telegram"];
 
 type PeriodKey = "7D" | "4W" | "3M" | "6M" | "1Y" | "custom";
@@ -45,30 +55,15 @@ function formatNumber(n: number) {
 function getDateRange(period: PeriodKey, customFrom?: string, customTo?: string) {
   const to = new Date();
   const toStr = to.toISOString().split("T")[0];
-
-  if (period === "custom" && customFrom && customTo) {
-    return { from: customFrom, to: customTo };
-  }
-
+  if (period === "custom" && customFrom && customTo) return { from: customFrom, to: customTo };
   const from = new Date();
   switch (period) {
-    case "7D":
-      from.setDate(from.getDate() - 7);
-      break;
-    case "4W":
-      from.setDate(from.getDate() - 28);
-      break;
-    case "3M":
-      from.setMonth(from.getMonth() - 3);
-      break;
-    case "6M":
-      from.setMonth(from.getMonth() - 6);
-      break;
-    case "1Y":
-      from.setFullYear(from.getFullYear() - 1);
-      break;
+    case "7D": from.setDate(from.getDate() - 7); break;
+    case "4W": from.setDate(from.getDate() - 28); break;
+    case "3M": from.setMonth(from.getMonth() - 3); break;
+    case "6M": from.setMonth(from.getMonth() - 6); break;
+    case "1Y": from.setFullYear(from.getFullYear() - 1); break;
   }
-
   return { from: from.toISOString().split("T")[0], to: toStr };
 }
 
@@ -88,10 +83,7 @@ export default function OverviewPage() {
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
 
-  const { from, to } = useMemo(
-    () => getDateRange(period, customFrom, customTo),
-    [period, customFrom, customTo]
-  );
+  const { from, to } = useMemo(() => getDateRange(period, customFrom, customTo), [period, customFrom, customTo]);
 
   const { data: ytData } = useYouTubeData();
   const { data: tgData } = useTelegramData();
@@ -101,25 +93,14 @@ export default function OverviewPage() {
   const { data: ga4Data } = useGA4Data(from, to);
   const { data: ga4PrevData } = useGA4Data(prevFromStr, prevToStr);
 
-  // Priority: manual DB > auto DB > live API > demo data
   const mergedMetrics = { ...channelMetrics };
-
-  if (ytData) {
-    mergedMetrics.youtube = { ...mergedMetrics.youtube, followers: ytData.channel.subscribers };
-  }
-  if (tgData) {
-    mergedMetrics.telegram = { ...mergedMetrics.telegram, followers: tgData.channel.members };
-  }
-  if (xData) {
-    mergedMetrics.x = { ...mergedMetrics.x, followers: xData.user.followers };
-  }
-
+  if (ytData) mergedMetrics.youtube = { ...mergedMetrics.youtube, followers: ytData.channel.subscribers };
+  if (tgData) mergedMetrics.telegram = { ...mergedMetrics.telegram, followers: tgData.channel.members };
+  if (xData) mergedMetrics.x = { ...mergedMetrics.x, followers: xData.user.followers };
   if (dbMetrics?.metrics) {
     for (const row of dbMetrics.metrics) {
       const key = row.channel as keyof typeof mergedMetrics;
-      if (mergedMetrics[key] && row.followers != null) {
-        mergedMetrics[key] = { ...mergedMetrics[key], followers: row.followers };
-      }
+      if (mergedMetrics[key] && row.followers != null) mergedMetrics[key] = { ...mergedMetrics[key], followers: row.followers };
     }
   }
 
@@ -131,48 +112,32 @@ export default function OverviewPage() {
 
   const totalFollowers = Object.values(mergedMetrics).reduce((sum, ch) => sum + ch.followers, 0);
 
-  // GA4 period data
   const ga4Visitors = ga4Data?.summary?.totalVisitors ?? trafficData[trafficData.length - 1]?.visitors ?? 0;
   const ga4Pageviews = ga4Data?.summary?.totalPageviews ?? trafficData[trafficData.length - 1]?.pageviews ?? 0;
   const ga4PrevVisitors = ga4PrevData?.summary?.totalVisitors ?? 0;
   const ga4PrevPageviews = ga4PrevData?.summary?.totalPageviews ?? 0;
 
-  const visitorsChange = ga4PrevVisitors > 0
-    ? Math.round(((ga4Visitors - ga4PrevVisitors) / ga4PrevVisitors) * 1000) / 10
-    : 0;
-  const pageviewsChange = ga4PrevPageviews > 0
-    ? Math.round(((ga4Pageviews - ga4PrevPageviews) / ga4PrevPageviews) * 1000) / 10
-    : 0;
+  const visitorsChange = ga4PrevVisitors > 0 ? Math.round(((ga4Visitors - ga4PrevVisitors) / ga4PrevVisitors) * 1000) / 10 : 0;
+  const pageviewsChange = ga4PrevPageviews > 0 ? Math.round(((ga4Pageviews - ga4PrevPageviews) / ga4PrevPageviews) * 1000) / 10 : 0;
 
-  // Avg session duration from GA4
-  const avgSessionSeconds = ga4Data?.daily?.length
-    ? ga4Data.daily.reduce((s, d) => s + d.avgSessionDuration, 0) / ga4Data.daily.length
-    : 204;
+  const avgSessionSeconds = ga4Data?.daily?.length ? ga4Data.daily.reduce((s, d) => s + d.avgSessionDuration, 0) / ga4Data.daily.length : 204;
   const avgMins = Math.floor(avgSessionSeconds / 60);
   const avgSecs = Math.round(avgSessionSeconds % 60);
   const avgSessionStr = `${avgMins}:${String(avgSecs).padStart(2, "0")}`;
-
-  const prevAvgSession = ga4PrevData?.daily?.length
-    ? ga4PrevData.daily.reduce((s, d) => s + d.avgSessionDuration, 0) / ga4PrevData.daily.length
-    : 0;
-  const sessionChange = prevAvgSession > 0
-    ? Math.round(((avgSessionSeconds - prevAvgSession) / prevAvgSession) * 1000) / 10
-    : 0;
+  const prevAvgSession = ga4PrevData?.daily?.length ? ga4PrevData.daily.reduce((s, d) => s + d.avgSessionDuration, 0) / ga4PrevData.daily.length : 0;
+  const sessionChange = prevAvgSession > 0 ? Math.round(((avgSessionSeconds - prevAvgSession) / prevAvgSession) * 1000) / 10 : 0;
 
   const chartTrafficData = ga4Data?.daily ?? trafficData;
   const periodLabel = getPeriodLabel(period);
 
   return (
-    <div className="space-y-6">
-      {/* Header + Period Selector */}
+    <div className="space-y-8">
+      {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            All channels at a glance
-          </p>
+          <p className="text-sm text-muted-foreground mt-0.5">All channels at a glance</p>
         </div>
-
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <div className="flex bg-muted rounded-lg p-0.5">
@@ -180,7 +145,7 @@ export default function OverviewPage() {
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                   period === p
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -193,132 +158,128 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      {/* Custom Date Range */}
       {period === "custom" && (
         <div className="flex items-center gap-3 text-sm">
           <span className="text-muted-foreground">From</span>
-          <input
-            type="date"
-            value={customFrom}
-            onChange={(e) => setCustomFrom(e.target.value)}
-            className="border rounded-md px-2 py-1 text-sm bg-background"
-          />
+          <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm bg-background" />
           <span className="text-muted-foreground">to</span>
-          <input
-            type="date"
-            value={customTo}
-            onChange={(e) => setCustomTo(e.target.value)}
-            className="border rounded-md px-2 py-1 text-sm bg-background"
-          />
-          {customFrom && customTo && (
-            <span className="text-xs text-muted-foreground">
-              comparing with {prevFromStr} ~ {prevToStr}
-            </span>
-          )}
+          <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm bg-background" />
+          {customFrom && customTo && <span className="text-xs text-muted-foreground">comparing with {prevFromStr} ~ {prevToStr}</span>}
         </div>
       )}
 
-      {/* Period info */}
       {period !== "custom" && (
-        <div className="text-xs text-muted-foreground">
-          {from} ~ {to} · {periodLabel}
-        </div>
+        <div className="text-xs text-muted-foreground -mt-4">{from} ~ {to} · {periodLabel}</div>
       )}
 
-      {/* ── Section 1: Website Traffic (GA4) ── */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Website Traffic
-        </h2>
+      {/* ── Website Traffic ── */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-4 w-1 bg-orange-500 rounded-full" />
+          <h2 className="text-sm font-semibold uppercase tracking-wider">Website Traffic</h2>
+        </div>
         <div className="grid grid-cols-3 gap-4">
-          <MetricCard
-            title="Visitors"
-            value={formatNumber(ga4Visitors)}
-            change={visitorsChange}
-            changeLabel={periodLabel}
-            icon={<Eye className="h-4 w-4" />}
-          />
-          <MetricCard
-            title="Pageviews"
-            value={formatNumber(ga4Pageviews)}
-            change={pageviewsChange}
-            changeLabel={periodLabel}
-            icon={<Globe className="h-4 w-4" />}
-          />
-          <MetricCard
-            title="Avg. Session"
-            value={avgSessionStr}
-            change={sessionChange}
-            changeLabel={periodLabel}
-            icon={<Clock className="h-4 w-4" />}
-          />
+          <MetricCard title="Visitors" value={formatNumber(ga4Visitors)} change={visitorsChange} changeLabel={periodLabel} icon={<Eye className="h-4 w-4" />} />
+          <MetricCard title="Pageviews" value={formatNumber(ga4Pageviews)} change={pageviewsChange} changeLabel={periodLabel} icon={<Globe className="h-4 w-4" />} />
+          <MetricCard title="Avg. Session" value={avgSessionStr} change={sessionChange} changeLabel={periodLabel} icon={<Clock className="h-4 w-4" />} />
         </div>
-      </div>
+      </section>
 
-      {/* ── Section 2: Social Performance ── */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Social Performance
-        </h2>
-
-        {/* Total Followers Bar */}
-        <div className="flex items-center gap-4 bg-muted/50 border rounded-lg px-5 py-3 mb-4">
-          <Users className="h-5 w-5 text-foreground" />
-          <span className="text-sm font-medium">Total Followers</span>
-          <span className="text-2xl font-bold">{formatNumber(totalFollowers)}</span>
+      {/* ── Social Performance ── */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-4 w-1 bg-blue-500 rounded-full" />
+          <h2 className="text-sm font-semibold uppercase tracking-wider">Social Performance</h2>
         </div>
 
-        {/* Channel Cards - Substack first */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Total Followers */}
+        <Card className="mb-4 bg-gradient-to-r from-slate-50 to-white border">
+          <CardContent className="py-4 px-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-foreground/5 flex items-center justify-center">
+                <Users className="h-5 w-5 text-foreground" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Total Followers</p>
+                <p className="text-3xl font-bold tracking-tight">{formatNumber(totalFollowers)}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">{periodLabel}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Channel Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {channelOrder.map((key) => {
             const ch = mergedMetrics[key as keyof typeof mergedMetrics];
             if (!ch) return null;
+            const change = getChange(key);
+            const isPositive = change !== undefined && change > 0;
+            const isNegative = change !== undefined && change < 0;
             return (
-              <MetricCard
-                key={key}
-                title={ch.name}
-                value={formatNumber(ch.followers)}
-                change={getChange(key)}
-                changeLabel={periodLabel}
-                icon={channelIcons[key]}
-              />
+              <Card key={key} className={`border ${channelColors[key] || ""} transition-all hover:shadow-md`}>
+                <CardContent className="py-4 px-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="h-8 w-8 rounded-lg bg-white/80 border flex items-center justify-center shadow-sm">
+                      {channelIcons[key]}
+                    </div>
+                    {change !== undefined && (
+                      <span className={`text-xs font-semibold flex items-center gap-0.5 ${isPositive ? "text-green-600" : isNegative ? "text-red-500" : "text-muted-foreground"}`}>
+                        {isPositive && <TrendingUp className="h-3 w-3" />}
+                        {isNegative && <TrendingDown className="h-3 w-3" />}
+                        {isPositive ? "+" : ""}{change}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-2xl font-bold tracking-tight">{formatNumber(ch.followers)}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{ch.name}</p>
+                </CardContent>
+              </Card>
             );
           })}
         </div>
-      </div>
+      </section>
 
-      {/* ── Section 3: Trends ── */}
-      <Tabs defaultValue="followers" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="followers">Follower Trend</TabsTrigger>
-          <TabsTrigger value="traffic">Traffic Trend</TabsTrigger>
-        </TabsList>
-        <TabsContent value="followers">
-          <TrendChart
-            title="Follower Growth (Monthly)"
-            data={followerTrend}
-            lines={[
-              { dataKey: "Substack", color: "#FF6719", name: "Substack" },
-              { dataKey: "X", color: "#000000", name: "X" },
-              { dataKey: "LinkedIn", color: "#0A66C2", name: "LinkedIn" },
-              { dataKey: "Telegram", color: "#26A5E4", name: "Telegram" },
-              { dataKey: "YouTube", color: "#FF0000", name: "YouTube" },
-            ]}
-            height={350}
-          />
-        </TabsContent>
-        <TabsContent value="traffic">
-          <TrendChart
-            title="Traffic Trend"
-            data={chartTrafficData}
-            lines={[
-              { dataKey: "visitors", color: "#f97316", name: "Visitors" },
-              { dataKey: "pageviews", color: "#3b82f6", name: "Pageviews" },
-            ]}
-            height={350}
-          />
-        </TabsContent>
-      </Tabs>
+      {/* ── Trends ── */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-4 w-1 bg-violet-500 rounded-full" />
+          <h2 className="text-sm font-semibold uppercase tracking-wider">Trends</h2>
+        </div>
+        <Tabs defaultValue="followers" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="followers">Follower Trend</TabsTrigger>
+            <TabsTrigger value="traffic">Traffic Trend</TabsTrigger>
+          </TabsList>
+          <TabsContent value="followers">
+            <TrendChart
+              title="Follower Growth (Monthly)"
+              data={followerTrend}
+              lines={[
+                { dataKey: "Substack", color: "#FF6719", name: "Substack" },
+                { dataKey: "X", color: "#000000", name: "X" },
+                { dataKey: "LinkedIn", color: "#0A66C2", name: "LinkedIn" },
+                { dataKey: "Telegram", color: "#26A5E4", name: "Telegram" },
+                { dataKey: "YouTube", color: "#FF0000", name: "YouTube" },
+              ]}
+              height={350}
+            />
+          </TabsContent>
+          <TabsContent value="traffic">
+            <TrendChart
+              title="Traffic Trend"
+              data={chartTrafficData}
+              lines={[
+                { dataKey: "visitors", color: "#f97316", name: "Visitors" },
+                { dataKey: "pageviews", color: "#3b82f6", name: "Pageviews" },
+              ]}
+              height={350}
+            />
+          </TabsContent>
+        </Tabs>
+      </section>
     </div>
   );
 }
