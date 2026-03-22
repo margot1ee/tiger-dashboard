@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 // Real data only - no demo data
-import { useSubstackData, useYouTubeData, useXData } from "@/lib/hooks";
+import { useSubstackData, useYouTubeData, useXData, useTelegramPosts } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -83,6 +83,7 @@ export default function ContentPage() {
   const { data: substackData } = useSubstackData();
   const { data: ytData } = useYouTubeData();
   const { data: xData } = useXData();
+  const { data: tgPosts } = useTelegramPosts();
 
   // Real data only
   const allContent = useMemo(() => {
@@ -137,8 +138,23 @@ export default function ContentPage() {
       }
     }
 
+    // Telegram posts from public page
+    if (tgPosts?.posts) {
+      for (const post of tgPosts.posts) {
+        items.push({
+          date: post.date,
+          channel: "Telegram",
+          title: post.title,
+          views: post.views,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+        });
+      }
+    }
+
     return items;
-  }, [substackData, ytData, xData]);
+  }, [substackData, ytData, xData, tgPosts]);
 
   // Filter by channel and date range
   const filtered = useMemo(() => {

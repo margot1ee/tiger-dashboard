@@ -104,6 +104,15 @@ export function useXData() {
   return useApiData<XData>("/api/x");
 }
 
+// Telegram Posts
+interface TelegramPostsData {
+  posts: { date: string; title: string; views: number }[];
+  totalPosts: number;
+}
+export function useTelegramPosts() {
+  return useApiData<TelegramPostsData>("/api/telegram-posts");
+}
+
 // Channel Metrics from Supabase
 export interface ChannelMetric {
   id: number;
