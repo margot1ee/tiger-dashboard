@@ -2,9 +2,8 @@
 
 import {
   ResponsiveContainer,
-  ComposedChart,
+  LineChart,
   Line,
-  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -71,27 +70,21 @@ export function SearchChart({
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={height}>
-          <ComposedChart data={data}>
-            <defs>
-              <linearGradient id="impressionsFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-              </linearGradient>
-            </defs>
+          <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis
               dataKey={xAxisKey}
               tick={{ fontSize: 12 }}
               className="text-muted-foreground"
             />
-            {/* Left axis: Impressions */}
+            {/* Left axis: Impressions (larger scale) */}
             <YAxis
               yAxisId="left"
               tick={{ fontSize: 11 }}
               className="text-muted-foreground"
               tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v}
             />
-            {/* Right axis: Clicks */}
+            {/* Right axis: Clicks (smaller scale) */}
             <YAxis
               yAxisId="right"
               orientation="right"
@@ -101,17 +94,16 @@ export function SearchChart({
             <Tooltip content={<CustomTooltip />} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
 
-            {/* Impressions: area + line on left axis */}
-            <Area
+            {/* Impressions: line on left axis */}
+            <Line
               type="monotone"
               dataKey="impressions"
               stroke="#8b5cf6"
-              fill="url(#impressionsFill)"
               name="Impressions"
               strokeWidth={2}
-              yAxisId="left"
               dot={false}
               activeDot={{ r: 4 }}
+              yAxisId="left"
             />
 
             {/* Clicks: line on right axis */}
@@ -120,25 +112,24 @@ export function SearchChart({
               dataKey="clicks"
               stroke="#22c55e"
               name="Clicks"
-              strokeWidth={2.5}
+              strokeWidth={2}
               dot={false}
-              activeDot={{ r: 5 }}
+              activeDot={{ r: 4 }}
               yAxisId="right"
             />
 
-            {/* CTR: hidden from chart, only shows in tooltip */}
+            {/* CTR: hidden, only in tooltip */}
             <Line
               type="monotone"
               dataKey="ctr"
               stroke="transparent"
-              name="CTR %"
               strokeWidth={0}
               dot={false}
               activeDot={false}
               legendType="none"
               yAxisId="right"
             />
-          </ComposedChart>
+          </LineChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
