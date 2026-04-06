@@ -166,28 +166,43 @@ export const contentPerformance = [
 
 export const weeklyInsights = [
   {
+    type: "alert" as const,
+    title: "Substack 구독자 -47명 감소 (22,677 → 22,630)",
+    detail: "3주 연속 하락세. WoW -0.21%. 콘텐츠 주제 다양화 또는 리텐션 캠페인 검토 필요",
+  },
+  {
     type: "growth" as const,
-    title: "Substack subscribers +320 this week",
-    detail: "3.2% WoW growth, driven by Bitcoin Valuation report",
+    title: "LinkedIn 팔로워 +44명, 최근 10주 최대 성장",
+    detail: "1,405 → 1,449 (+3.13% WoW). 임프레션도 2,337 → 3,819 (+63.4%) 급증",
   },
   {
     type: "spike" as const,
-    title: "Organic traffic up 15%",
-    detail: "'asia web3 market' keyword ranking improved from #5 to #3",
+    title: "X 임프레션 6,900 → 25,622 (+271% WoW)",
+    detail: "팔로워는 거의 변동 없으나(-2명) 임프레션 급증. 바이럴 콘텐츠 또는 외부 유입 확인 필요",
   },
   {
-    type: "content" as const,
-    title: "Top content: 'Short-Term Uncertainty Rising'",
-    detail: "4,230 views in 3 days, highest engagement rate this month",
+    type: "growth" as const,
+    title: "Instagram (ID) 팔로워 +148명 (1,184 → 1,332)",
+    detail: "+12.5% WoW. 전 채널 중 가장 높은 팔로워 성장률. 인도네시아 시장 성장세 지속",
   },
   {
     type: "alert" as const,
-    title: "LinkedIn engagement rate declining",
-    detail: "Down 8% vs last week. Consider more visual/carousel posts",
+    title: "Telegram 임프레션 692 → 154 (-77.8% WoW)",
+    detail: "포스트 조회수 급감. 콘텐츠 빈도 또는 포스팅 시간대 재검토 필요",
   },
   {
-    type: "keyword" as const,
-    title: "Rising keyword: 'bitcoin valuation model'",
-    detail: "Impressions +42% WoW, clicks +28%. Opportunity for more content",
+    type: "alert" as const,
+    title: "Instagram (ID) 조회수 8,028 → 1,063 (-86.8% WoW)",
+    detail: "팔로워는 증가하나 콘텐츠 도달률 급감. 알고리즘 변화 또는 콘텐츠 전략 점검 필요",
+  },
+  {
+    type: "content" as const,
+    title: "Substack 임프레션 22,200 → 32,800 (+47.7% WoW)",
+    detail: "구독자는 줄었으나 임프레션 대폭 증가. 비구독자 유입 증가 → 전환 기회",
+  },
+  {
+    type: "alert" as const,
+    title: "YouTube 성장 둔화: 팔로워 +2명, 조회수 528 (-11.6%)",
+    detail: "직전 주 대비 성장세 크게 둔화 (465→467). 영상 업로드 빈도 또는 주제 재검토",
   },
 ];
