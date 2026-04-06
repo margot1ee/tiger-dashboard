@@ -56,6 +56,24 @@ export const channelMetrics = {
     change: 2.1,
     color: "#26A5E4",
   },
+  xiaohongshu: {
+    name: "小红书",
+    followers: 0,
+    change: 0,
+    color: "#FF2442",
+  },
+  instagram_id: {
+    name: "Instagram (ID)",
+    followers: 0,
+    change: 0,
+    color: "#E4405F",
+  },
+  x_jp: {
+    name: "X (JP)",
+    followers: 0,
+    change: 0,
+    color: "#000000",
+  },
 };
 
 export const followerTrend = Array.from({ length: 12 }, (_, i) => {

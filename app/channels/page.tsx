@@ -10,6 +10,8 @@ import { XIcon } from "@/components/icons/x-icon";
 import { SubstackIcon } from "@/components/icons/substack-icon";
 import { LinkedInIcon } from "@/components/icons/linkedin-icon";
 import { TelegramIcon } from "@/components/icons/telegram-icon";
+import { XiaohongshuIcon } from "@/components/icons/xiaohongshu-icon";
+import { InstagramIcon } from "@/components/icons/instagram-icon";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +40,21 @@ const channelConfig: Record<string, { icon: React.ReactNode; description: string
     icon: <TelegramIcon className="h-6 w-6" />,
     description: "Group members & activity",
     href: "/channels/telegram",
+  },
+  xiaohongshu: {
+    icon: <XiaohongshuIcon className="h-6 w-6" />,
+    description: "小红书 followers & engagement (China)",
+    href: "/channels/xiaohongshu",
+  },
+  instagram_id: {
+    icon: <InstagramIcon className="h-6 w-6" />,
+    description: "Instagram followers & posts (Indonesia)",
+    href: "/channels/instagram_id",
+  },
+  x_jp: {
+    icon: <XIcon className="h-6 w-6" />,
+    description: "X followers & engagement (Japan)",
+    href: "/channels/x_jp",
   },
 };
 

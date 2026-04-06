@@ -24,6 +24,8 @@ import { SubstackIcon } from "@/components/icons/substack-icon";
 import { LinkedInIcon } from "@/components/icons/linkedin-icon";
 import { TelegramIcon } from "@/components/icons/telegram-icon";
 import { YouTubeIcon } from "@/components/icons/youtube-icon";
+import { XiaohongshuIcon } from "@/components/icons/xiaohongshu-icon";
+import { InstagramIcon } from "@/components/icons/instagram-icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const channelIcons: Record<string, React.ReactNode> = {
@@ -32,6 +34,9 @@ const channelIcons: Record<string, React.ReactNode> = {
   linkedin: <LinkedInIcon className="h-5 w-5" />,
   youtube: <YouTubeIcon className="h-5 w-5" />,
   telegram: <TelegramIcon className="h-5 w-5" />,
+  xiaohongshu: <XiaohongshuIcon className="h-5 w-5 text-[#FF2442]" />,
+  instagram_id: <InstagramIcon className="h-5 w-5 text-[#E4405F]" />,
+  x_jp: <XIcon className="h-5 w-5" />,
 };
 
 const channelColors: Record<string, string> = {
@@ -40,9 +45,12 @@ const channelColors: Record<string, string> = {
   linkedin: "",
   youtube: "",
   telegram: "",
+  xiaohongshu: "",
+  instagram_id: "",
+  x_jp: "",
 };
 
-const channelOrder = ["substack", "x", "linkedin", "youtube", "telegram"];
+const channelOrder = ["substack", "x", "linkedin", "youtube", "telegram", "xiaohongshu", "instagram_id", "x_jp"];
 
 type PeriodKey = "7D" | "4W" | "3M" | "6M" | "1Y" | "custom";
 
@@ -200,7 +208,7 @@ export default function OverviewPage() {
         </div>
 
         {/* Channel Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {channelOrder.map((key) => {
             const ch = mergedMetrics[key as keyof typeof mergedMetrics];
             if (!ch) return null;

@@ -26,6 +26,9 @@ const channelUrls: Record<string, string> = {
   linkedin: "https://www.linkedin.com/company/tiger-research-inc/",
   youtube: "https://www.youtube.com/@Tiger_Research",
   telegram: "https://t.me/tiger_research",
+  xiaohongshu: "https://www.xiaohongshu.com/user/profile/95032606859",
+  instagram_id: "https://www.instagram.com/tigerresearch_",
+  x_jp: "https://x.com/tr_japan_",
 };
 
 function seededRandom(seed: number) {
@@ -612,6 +615,139 @@ function LinkedInDetail({ metrics }: { metrics: { name: string; followers: numbe
   );
 }
 
+function XiaohongshuDetail() {
+  const { data: dbData } = useChannelMetricsByChannel("xiaohongshu");
+  const latestDb = dbData?.metrics?.[0];
+  const followers = latestDb?.followers ?? 0;
+  const dataSource = latestDb?.source;
+  const dataDate = latestDb?.date;
+
+  return (
+    <>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          title="Followers"
+          value={followers > 0 ? followers.toLocaleString() : "—"}
+          icon={dataSource === "manual" ? <Badge className="bg-orange-100 text-orange-700 text-[10px]">Manual</Badge> : undefined}
+        />
+        <MetricCard title="Account" value="Tigu | Tiger Research" />
+        <MetricCard title="RED ID" value="95032606859" />
+        <MetricCard title="Market" value="China" />
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle className="text-sm font-medium">Data Source</CardTitle></CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            {latestDb
+              ? `Data from Supabase (${dataSource}, updated ${dataDate}). `
+              : "샤오홍슈(小红书)는 수동 업데이트 방식으로 운영합니다. "}
+            <Link href="/input" className="text-orange-500 hover:underline">Data Input</Link> 페이지에서 데이터를 입력할 수 있습니다.
+          </p>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+function InstagramIdDetail() {
+  const { data: dbData } = useChannelMetricsByChannel("instagram_id");
+  const latestDb = dbData?.metrics?.[0];
+  const followers = latestDb?.followers ?? 0;
+  const impressions = latestDb?.impressions;
+  const engagements = latestDb?.engagements;
+  const engagementRate = latestDb?.engagement_rate;
+  const dataSource = latestDb?.source;
+  const dataDate = latestDb?.date;
+
+  return (
+    <>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          title="Followers"
+          value={followers > 0 ? followers.toLocaleString() : "—"}
+          icon={dataSource === "manual" ? <Badge className="bg-orange-100 text-orange-700 text-[10px]">Manual</Badge> : undefined}
+        />
+        <MetricCard title="Account" value="@tigerresearch_" />
+        <MetricCard title="Market" value="Indonesia" />
+        {impressions != null ? (
+          <MetricCard title="Impressions" value={formatNumber(impressions)} />
+        ) : (
+          <MetricCard title="Impressions" value="—" />
+        )}
+      </div>
+
+      {(engagements != null || engagementRate != null) && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {engagements != null && <MetricCard title="Engagements" value={formatNumber(engagements)} />}
+          {engagementRate != null && <MetricCard title="Engagement Rate" value={`${engagementRate}%`} />}
+        </div>
+      )}
+
+      <Card>
+        <CardHeader><CardTitle className="text-sm font-medium">Data Source</CardTitle></CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            {latestDb
+              ? `Data from Supabase (${dataSource}, updated ${dataDate}). `
+              : "Instagram (Indonesia)는 수동 업데이트 방식으로 운영합니다. "}
+            <Link href="/input" className="text-orange-500 hover:underline">Data Input</Link> 페이지에서 데이터를 입력할 수 있습니다.
+          </p>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+function XJpDetail() {
+  const { data: dbData } = useChannelMetricsByChannel("x_jp");
+  const latestDb = dbData?.metrics?.[0];
+  const followers = latestDb?.followers ?? 0;
+  const impressions = latestDb?.impressions;
+  const engagements = latestDb?.engagements;
+  const engagementRate = latestDb?.engagement_rate;
+  const dataSource = latestDb?.source;
+  const dataDate = latestDb?.date;
+
+  return (
+    <>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          title="Followers"
+          value={followers > 0 ? followers.toLocaleString() : "—"}
+          icon={dataSource === "manual" ? <Badge className="bg-orange-100 text-orange-700 text-[10px]">Manual</Badge> : undefined}
+        />
+        <MetricCard title="Account" value="@tr_japan_" />
+        <MetricCard title="Market" value="Japan" />
+        {impressions != null ? (
+          <MetricCard title="Impressions" value={formatNumber(impressions)} />
+        ) : (
+          <MetricCard title="Impressions" value="—" />
+        )}
+      </div>
+
+      {(engagements != null || engagementRate != null) && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {engagements != null && <MetricCard title="Engagements" value={formatNumber(engagements)} />}
+          {engagementRate != null && <MetricCard title="Engagement Rate" value={`${engagementRate}%`} />}
+        </div>
+      )}
+
+      <Card>
+        <CardHeader><CardTitle className="text-sm font-medium">Data Source</CardTitle></CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            {latestDb
+              ? `Data from Supabase (${dataSource}, updated ${dataDate}). `
+              : "X (Japan)는 수동 업데이트 방식으로 운영합니다. "}
+            <Link href="/input" className="text-orange-500 hover:underline">Data Input</Link> 페이지에서 데이터를 입력할 수 있습니다.
+          </p>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
 function DefaultDetail({ channel, metrics }: { channel: string; metrics: { name: string; followers: number; change: number; color: string } }) {
   const trend = generateChannelTrend(channel);
 
@@ -695,7 +831,10 @@ export default function ChannelDetailPage({
       {channel === "telegram" && <TelegramDetail />}
       {channel === "x" && <XDetail />}
       {channel === "linkedin" && <LinkedInDetail metrics={metrics} />}
-      {channel !== "youtube" && channel !== "substack" && channel !== "telegram" && channel !== "x" && channel !== "linkedin" && (
+      {channel === "xiaohongshu" && <XiaohongshuDetail />}
+      {channel === "instagram_id" && <InstagramIdDetail />}
+      {channel === "x_jp" && <XJpDetail />}
+      {!["youtube", "substack", "telegram", "x", "linkedin", "xiaohongshu", "instagram_id", "x_jp"].includes(channel) && (
         <DefaultDetail channel={channel} metrics={metrics} />
       )}
     </div>
