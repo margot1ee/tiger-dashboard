@@ -34,9 +34,9 @@ const channelIcons: Record<string, React.ReactNode> = {
   linkedin: <LinkedInIcon className="h-5 w-5" />,
   youtube: <YouTubeIcon className="h-5 w-5" />,
   telegram: <TelegramIcon className="h-5 w-5" />,
-  xiaohongshu: <XiaohongshuIcon className="h-5 w-5 text-[#FF2442]" />,
-  instagram_id: <InstagramIcon className="h-5 w-5 text-[#E4405F]" />,
-  x_jp: <XIcon className="h-5 w-5" />,
+  xiaohongshu: <span className="flex items-center gap-0.5"><XiaohongshuIcon className="h-5 w-5 text-[#FF2442]" /><span className="text-[10px]">🇨🇳</span></span>,
+  instagram_id: <span className="flex items-center gap-0.5"><InstagramIcon className="h-5 w-5 text-[#E4405F]" /><span className="text-[10px]">🇮🇩</span></span>,
+  x_jp: <span className="flex items-center gap-0.5"><XIcon className="h-5 w-5" /><span className="text-[10px]">🇯🇵</span></span>,
 };
 
 const channelColors: Record<string, string> = {
@@ -125,6 +125,18 @@ export default function OverviewPage() {
   const ga4PrevVisitors = ga4PrevData?.summary?.totalVisitors ?? 0;
   const ga4PrevPageviews = ga4PrevData?.summary?.totalPageviews ?? 0;
 
+  // Total impressions from all sources
+  const dbImpressions = dbMetrics?.metrics?.reduce((sum, row) => sum + (row.impressions ?? 0), 0) ?? 0;
+  const ytImpressions = ytData?.summary?.totalViewsInList ?? 0;
+  const totalImpressions = dbImpressions + ytImpressions + ga4Pageviews;
+
+  // Previous period impressions for WoW
+  const prevDbImpressions = comparisons.reduce((sum, c) => sum + (c.previous?.impressions ?? 0), 0);
+  const prevTotalImpressions = prevDbImpressions + ga4PrevPageviews;
+  const impressionsChange = prevTotalImpressions > 0
+    ? Math.round(((totalImpressions - prevTotalImpressions) / prevTotalImpressions) * 1000) / 10
+    : undefined;
+
   const visitorsChange = ga4PrevVisitors > 0 ? Math.round(((ga4Visitors - ga4PrevVisitors) / ga4PrevVisitors) * 1000) / 10 : 0;
   const pageviewsChange = ga4PrevPageviews > 0 ? Math.round(((ga4Pageviews - ga4PrevPageviews) / ga4PrevPageviews) * 1000) / 10 : 0;
 
@@ -200,11 +212,25 @@ export default function OverviewPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wider">Social Performance</h2>
         </div>
 
-        {/* Total Followers */}
-        <div className="flex items-center gap-3 border rounded-lg px-4 py-2.5 mb-4">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Total Followers</span>
-          <span className="text-xl font-bold">{formatNumber(totalFollowers)}</span>
+        {/* Total Followers & Impressions */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="flex items-center gap-3 border rounded-lg px-4 py-2.5">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Total Followers</span>
+            <span className="text-xl font-bold">{formatNumber(totalFollowers)}</span>
+          </div>
+          <div className="flex items-center gap-3 border rounded-lg px-4 py-2.5">
+            <Eye className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Total Impressions</span>
+            <span className="text-xl font-bold">{formatNumber(totalImpressions)}</span>
+            {impressionsChange !== undefined && (
+              <span className={`text-xs font-semibold flex items-center gap-0.5 ${impressionsChange > 0 ? "text-green-600" : impressionsChange < 0 ? "text-red-500" : "text-muted-foreground"}`}>
+                {impressionsChange > 0 && <TrendingUp className="h-3 w-3" />}
+                {impressionsChange < 0 && <TrendingDown className="h-3 w-3" />}
+                {impressionsChange > 0 ? "+" : ""}{impressionsChange}%
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Channel Cards */}

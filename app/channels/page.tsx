@@ -42,17 +42,17 @@ const channelConfig: Record<string, { icon: React.ReactNode; description: string
     href: "/channels/telegram",
   },
   xiaohongshu: {
-    icon: <XiaohongshuIcon className="h-6 w-6" />,
+    icon: <span className="flex items-center gap-1"><XiaohongshuIcon className="h-6 w-6" /><span className="text-sm">🇨🇳</span></span>,
     description: "小红书 followers & engagement (China)",
     href: "/channels/xiaohongshu",
   },
   instagram_id: {
-    icon: <InstagramIcon className="h-6 w-6" />,
+    icon: <span className="flex items-center gap-1"><InstagramIcon className="h-6 w-6" /><span className="text-sm">🇮🇩</span></span>,
     description: "Instagram followers & posts (Indonesia)",
     href: "/channels/instagram_id",
   },
   x_jp: {
-    icon: <XIcon className="h-6 w-6" />,
+    icon: <span className="flex items-center gap-1"><XIcon className="h-6 w-6" /><span className="text-sm">🇯🇵</span></span>,
     description: "X followers & engagement (Japan)",
     href: "/channels/x_jp",
   },
