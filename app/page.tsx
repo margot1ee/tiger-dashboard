@@ -3,10 +3,12 @@
 import { useState, useMemo } from "react";
 import { MetricCard } from "@/components/metric-card";
 import { TrendChart } from "@/components/charts/trend-chart";
+import { BarChart } from "@/components/charts/bar-chart";
 import {
   channelMetrics,
   followerTrend,
   trafficData,
+  trafficSources,
 } from "@/lib/demo-data";
 import { useYouTubeData, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data } from "@/lib/hooks";
 import { Card, CardContent } from "@/components/ui/card";
@@ -203,6 +205,16 @@ export default function OverviewPage() {
           <MetricCard title="Pageviews" value={formatNumber(ga4Pageviews)} change={pageviewsChange} changeLabel={periodLabel} icon={<Globe className="h-4 w-4" />} />
           <MetricCard title="Avg. Session" value={avgSessionStr} change={sessionChange} changeLabel={periodLabel} icon={<Clock className="h-4 w-4" />} />
         </div>
+
+        {/* Traffic Sources Bar Chart */}
+        <BarChart
+          title="Traffic by Source / Medium"
+          data={(ga4Data?.sources ?? trafficSources).map(s => ({ ...s, name: s.name }))}
+          dataKey="value"
+          nameKey="name"
+          color="#f97316"
+          height={280}
+        />
       </section>
 
       {/* ── Social Performance ── */}

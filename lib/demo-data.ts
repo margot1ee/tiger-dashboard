@@ -89,10 +89,10 @@ export const followerTrend = Array.from({ length: 12 }, (_, i) => {
 });
 
 export const trafficSources = [
-  { name: "Organic Search", value: 42, color: "#22c55e" },
-  { name: "Social", value: 28, color: "#3b82f6" },
-  { name: "Direct", value: 18, color: "#f97316" },
-  { name: "Referral", value: 12, color: "#8b5cf6" },
+  { name: "Organic Search", value: 420, color: "#22c55e" },
+  { name: "Social", value: 280, color: "#3b82f6" },
+  { name: "Direct", value: 180, color: "#f97316" },
+  { name: "Referral", value: 120, color: "#8b5cf6" },
 ];
 
 export const popularPages = [
