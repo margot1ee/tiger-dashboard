@@ -23,9 +23,26 @@ function useApiData<T>(url: string) {
 }
 
 // YouTube
-interface YouTubeData {
+export interface YouTubeVideo {
+  id: string;
+  title: string;
+  publishedAt: string;
+  thumbnail: string | null;
+  views: number;
+  likes: number;
+  comments: number;
+  durationSeconds: number;
+  formattedDuration: string;
+}
+export interface YouTubeData {
   channel: { title: string; subscribers: number; totalViews: number; videoCount: number };
-  videos: { id: string; title: string; publishedAt: string; views: number; likes: number; comments: number }[];
+  videos: YouTubeVideo[];
+  summary: {
+    totalViewsInList: number;
+    avgDurationSeconds: number;
+    avgDurationFormatted: string;
+    videoCount: number;
+  };
 }
 export function useYouTubeData() {
   return useApiData<YouTubeData>("/api/youtube");

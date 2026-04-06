@@ -1,10 +1,11 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import { MetricCard } from "@/components/metric-card";
 import { TrendChart } from "@/components/charts/trend-chart";
 import { channelMetrics } from "@/lib/demo-data";
 import { useYouTubeData, useSubstackData, useTelegramData, useChannelMetricsByChannel } from "@/lib/hooks";
+import type { YouTubeVideo } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -17,7 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format, subDays } from "date-fns";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Eye, Heart, MessageCircle, Loader2, Repeat2, Quote } from "lucide-react";
+import { ArrowLeft, ExternalLink, Eye, Heart, MessageCircle, Loader2, Repeat2, Quote, Clock, TrendingUp, TrendingDown, Play, BarChart3, Timer } from "lucide-react";
 
 const channelUrls: Record<string, string> = {
   substack: "https://reports.tiger-research.com/",
@@ -46,54 +47,328 @@ function formatNumber(n: number) {
   return n.toLocaleString();
 }
 
+type YTPeriod = "7d" | "4w" | "3m" | "6m" | "1y" | "all";
+
+function getPeriodDays(period: YTPeriod): number | null {
+  switch (period) {
+    case "7d": return 7;
+    case "4w": return 28;
+    case "3m": return 90;
+    case "6m": return 180;
+    case "1y": return 365;
+    case "all": return null;
+  }
+}
+
+function getPeriodLabel(period: YTPeriod): string {
+  switch (period) {
+    case "7d": return "7일";
+    case "4w": return "4주";
+    case "3m": return "3개월";
+    case "6m": return "6개월";
+    case "1y": return "1년";
+    case "all": return "전체";
+  }
+}
+
+function formatDurationShort(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function filterVideosByPeriod(videos: YouTubeVideo[], period: YTPeriod): YouTubeVideo[] {
+  const days = getPeriodDays(period);
+  if (days === null) return videos;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return videos.filter(v => new Date(v.publishedAt) >= cutoff);
+}
+
+function getVideosPublishedWithin24h(videos: YouTubeVideo[]): YouTubeVideo[] {
+  // Videos published within the last 24 hours of their publish date
+  // We show views accumulated by day 1 (approximation: for recently published videos)
+  const oneDayAgo = new Date();
+  oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+  return videos.filter(v => new Date(v.publishedAt) >= oneDayAgo);
+}
+
 function YouTubeDetail() {
   const { data, loading, error } = useYouTubeData();
+  const [period, setPeriod] = useState<YTPeriod>("7d");
 
   if (loading) return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading YouTube data...</div>;
   if (error || !data) return <p className="text-sm text-muted-foreground">YouTube API not connected. Add YOUTUBE_API_KEY to Vercel env vars.</p>;
 
+  const periodDays = getPeriodDays(period);
+  const periodVideos = filterVideosByPeriod(data.videos, period);
+  const periodViews = periodVideos.reduce((sum, v) => sum + v.views, 0);
+  const totalViews = data.videos.reduce((sum, v) => sum + v.views, 0);
+
+  // WoW: compare period views vs previous period views
+  const prevPeriodVideos = periodDays
+    ? data.videos.filter(v => {
+        const pub = new Date(v.publishedAt);
+        const now = new Date();
+        const periodStart = new Date(now);
+        periodStart.setDate(periodStart.getDate() - periodDays);
+        const prevStart = new Date(periodStart);
+        prevStart.setDate(prevStart.getDate() - periodDays);
+        return pub >= prevStart && pub < periodStart;
+      })
+    : [];
+  const prevPeriodViews = prevPeriodVideos.reduce((sum, v) => sum + v.views, 0);
+  const wow = prevPeriodViews > 0
+    ? Math.round(((periodViews - prevPeriodViews) / prevPeriodViews) * 1000) / 10
+    : null;
+
+  // Average duration
+  const avgDuration = data.videos.length > 0
+    ? Math.round(data.videos.reduce((sum, v) => sum + v.durationSeconds, 0) / data.videos.length)
+    : 0;
+
+  // Sort videos by views (descending) for the table
+  const sortedByViews = [...data.videos].sort((a, b) => b.views - a.views);
+  const periodSortedByViews = [...periodVideos].sort((a, b) => b.views - a.views);
+
+  // Recently published videos (within 1 day) for "1일 경과시 조회수"
+  const recentVideos = data.videos.filter(v => {
+    const pub = new Date(v.publishedAt);
+    const now = new Date();
+    const diffHours = (now.getTime() - pub.getTime()) / (1000 * 60 * 60);
+    return diffHours <= 48; // within 48 hours
+  });
+
+  const periods: YTPeriod[] = ["7d", "4w", "3m", "6m", "1y", "all"];
+
   return (
     <>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard title="Subscribers" value={data.channel.subscribers.toLocaleString()} icon={<Badge className="bg-red-100 text-red-700 text-[10px]">LIVE</Badge>} />
-        <MetricCard title="Total Views" value={formatNumber(data.channel.totalViews)} />
-        <MetricCard title="Videos" value={data.channel.videoCount.toString()} />
-        <MetricCard title="Avg. Views/Video" value={formatNumber(Math.round(data.channel.totalViews / data.channel.videoCount))} />
+      {/* Period selector */}
+      <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
+        {periods.map(p => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              period === p
+                ? "bg-white text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {p === "7d" ? "7D" : p === "4w" ? "4W" : p === "3m" ? "3M" : p === "6m" ? "6M" : p === "1y" ? "1Y" : "All"}
+          </button>
+        ))}
       </div>
 
+      {/* Summary metrics */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <MetricCard
+          title="Subscribers"
+          value={data.channel.subscribers.toLocaleString()}
+          icon={<Badge className="bg-red-100 text-red-700 text-[10px]">LIVE</Badge>}
+        />
+        <MetricCard
+          title={`조회수 (${getPeriodLabel(period)})`}
+          value={formatNumber(periodViews)}
+          change={wow ?? undefined}
+          changeLabel="WoW"
+          icon={<Eye className="h-4 w-4 text-muted-foreground" />}
+        />
+        <MetricCard
+          title="총 조회수"
+          value={formatNumber(data.channel.totalViews)}
+        />
+        <MetricCard
+          title={`콘텐츠 (${getPeriodLabel(period)})`}
+          value={`${periodVideos.length}개`}
+          icon={<Play className="h-4 w-4 text-muted-foreground" />}
+        />
+        <MetricCard
+          title="평균 영상 길이"
+          value={formatDurationShort(avgDuration)}
+          icon={<Timer className="h-4 w-4 text-muted-foreground" />}
+        />
+      </div>
+
+      {/* 콘텐츠별 총 조회수 */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Recent Videos</CardTitle>
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            콘텐츠별 총 조회수
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Published</TableHead>
-                <TableHead className="text-right"><Eye className="h-3.5 w-3.5 inline mr-1" />Views</TableHead>
-                <TableHead className="text-right"><Heart className="h-3.5 w-3.5 inline mr-1" />Likes</TableHead>
-                <TableHead className="text-right"><MessageCircle className="h-3.5 w-3.5 inline mr-1" />Comments</TableHead>
+                <TableHead className="w-[40px]">#</TableHead>
+                <TableHead>제목</TableHead>
+                <TableHead>게시일</TableHead>
+                <TableHead className="text-right">조회수</TableHead>
+                <TableHead className="text-right">좋아요</TableHead>
+                <TableHead className="text-right">댓글</TableHead>
+                <TableHead className="text-right">영상 길이</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.videos.map((video) => (
+              {sortedByViews.map((video, i) => (
                 <TableRow key={video.id}>
+                  <TableCell className="text-muted-foreground text-xs">{i + 1}</TableCell>
                   <TableCell className="font-medium max-w-[300px]">
-                    <a href={`https://youtube.com/watch?v=${video.id}`} target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">
+                    <a href={`https://youtube.com/watch?v=${video.id}`} target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors line-clamp-1">
                       {video.title}
                     </a>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {new Date(video.publishedAt).toLocaleDateString()}
+                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                    {new Date(video.publishedAt).toLocaleDateString("ko-KR")}
                   </TableCell>
-                  <TableCell className="text-right">{video.views.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{video.likes.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{video.comments.toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-medium">{video.views.toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{video.likes.toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{video.comments.toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-muted-foreground text-xs">{video.formattedDuration}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+
+      {/* 설정 기간 동안의 콘텐츠별 조회수 */}
+      {periodVideos.length > 0 && period !== "all" && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              {getPeriodLabel(period)} 동안 게시된 콘텐츠 조회수
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              최근 {getPeriodLabel(period)} 내 게시된 영상 {periodVideos.length}개
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[40px]">#</TableHead>
+                  <TableHead>제목</TableHead>
+                  <TableHead>게시일</TableHead>
+                  <TableHead className="text-right">조회수</TableHead>
+                  <TableHead className="text-right">좋아요</TableHead>
+                  <TableHead className="text-right">영상 길이</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {periodSortedByViews.map((video, i) => (
+                  <TableRow key={video.id}>
+                    <TableCell className="text-muted-foreground text-xs">{i + 1}</TableCell>
+                    <TableCell className="font-medium max-w-[300px]">
+                      <a href={`https://youtube.com/watch?v=${video.id}`} target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors line-clamp-1">
+                        {video.title}
+                      </a>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                      {new Date(video.publishedAt).toLocaleDateString("ko-KR")}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">{video.views.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{video.likes.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-muted-foreground text-xs">{video.formattedDuration}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 최근 게시 콘텐츠 (1일 경과시 조회수) */}
+      {recentVideos.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              1일 경과시 조회수 (최근 48시간 내 게시)
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              게시 후 초기 조회 성과를 확인합니다
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>제목</TableHead>
+                  <TableHead>게시 시간</TableHead>
+                  <TableHead className="text-right">경과 시간</TableHead>
+                  <TableHead className="text-right">현재 조회수</TableHead>
+                  <TableHead className="text-right">좋아요</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentVideos.map((video) => {
+                  const hoursAgo = Math.round((Date.now() - new Date(video.publishedAt).getTime()) / (1000 * 60 * 60));
+                  return (
+                    <TableRow key={video.id}>
+                      <TableCell className="font-medium max-w-[300px]">
+                        <a href={`https://youtube.com/watch?v=${video.id}`} target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors line-clamp-1">
+                          {video.title}
+                        </a>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                        {new Date(video.publishedAt).toLocaleString("ko-KR")}
+                      </TableCell>
+                      <TableCell className="text-right text-xs">
+                        <Badge variant="outline" className="text-[10px]">{hoursAgo}시간 전</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{video.views.toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{video.likes.toLocaleString()}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 콘텐츠별 평균 시청 지속 시간 (영상 길이 기준) */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Timer className="h-4 w-4" />
+            콘텐츠별 영상 길이
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            평균 영상 길이: {formatDurationShort(avgDuration)}
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {[...data.videos].sort((a, b) => b.durationSeconds - a.durationSeconds).map((video) => {
+              const maxDuration = Math.max(...data.videos.map(v => v.durationSeconds));
+              const pct = maxDuration > 0 ? (video.durationSeconds / maxDuration) * 100 : 0;
+              return (
+                <div key={video.id} className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <a href={`https://youtube.com/watch?v=${video.id}`} target="_blank" rel="noopener noreferrer" className="text-xs hover:text-orange-500 transition-colors line-clamp-1">
+                      {video.title}
+                    </a>
+                  </div>
+                  <div className="w-[200px] flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-red-500 rounded-full"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground w-[50px] text-right">{video.formattedDuration}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
     </>
