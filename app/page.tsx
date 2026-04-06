@@ -127,16 +127,23 @@ export default function OverviewPage() {
   const ga4PrevVisitors = ga4PrevData?.summary?.totalVisitors ?? 0;
   const ga4PrevPageviews = ga4PrevData?.summary?.totalPageviews ?? 0;
 
-  // Total impressions from all sources
-  const dbImpressions = dbMetrics?.metrics?.reduce((sum, row) => sum + (row.impressions ?? 0), 0) ?? 0;
-  const ytImpressions = ytData?.summary?.totalViewsInList ?? 0;
-  const totalImpressions = dbImpressions + ytImpressions + ga4Pageviews;
+  // Total impressions from all channels (CSV data in channelMetrics)
+  const totalImpressions = Object.values(mergedMetrics).reduce(
+    (sum, ch) => sum + ((ch as { impressions?: number }).impressions ?? 0), 0
+  );
 
-  // Previous period impressions for WoW
-  const prevDbImpressions = comparisons.reduce((sum, c) => sum + (c.previous?.impressions ?? 0), 0);
-  const prevTotalImpressions = prevDbImpressions + ga4PrevPageviews;
-  const impressionsChange = prevTotalImpressions > 0
-    ? Math.round(((totalImpressions - prevTotalImpressions) / prevTotalImpressions) * 1000) / 10
+  // Weighted average WoW for impressions
+  const channelsWithImpressions = Object.values(mergedMetrics).filter(
+    (ch) => ((ch as { impressions?: number }).impressions ?? 0) > 0
+  );
+  const totalImpressionsWoW = channelsWithImpressions.length > 0
+    ? Math.round(
+        channelsWithImpressions.reduce((sum, ch) => {
+          const imp = (ch as { impressions?: number }).impressions ?? 0;
+          const change = (ch as { impressionsChange?: number }).impressionsChange ?? 0;
+          return sum + imp * change;
+        }, 0) / totalImpressions * 10
+      ) / 10
     : undefined;
 
   const visitorsChange = ga4PrevVisitors > 0 ? Math.round(((ga4Visitors - ga4PrevVisitors) / ga4PrevVisitors) * 1000) / 10 : 0;
@@ -235,11 +242,11 @@ export default function OverviewPage() {
             <Eye className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Total Impressions</span>
             <span className="text-xl font-bold">{formatNumber(totalImpressions)}</span>
-            {impressionsChange !== undefined && (
-              <span className={`text-xs font-semibold flex items-center gap-0.5 ${impressionsChange > 0 ? "text-green-600" : impressionsChange < 0 ? "text-red-500" : "text-muted-foreground"}`}>
-                {impressionsChange > 0 && <TrendingUp className="h-3 w-3" />}
-                {impressionsChange < 0 && <TrendingDown className="h-3 w-3" />}
-                {impressionsChange > 0 ? "+" : ""}{impressionsChange}%
+            {totalImpressionsWoW !== undefined && (
+              <span className={`text-xs font-semibold flex items-center gap-0.5 ${totalImpressionsWoW > 0 ? "text-green-600" : totalImpressionsWoW < 0 ? "text-red-500" : "text-muted-foreground"}`}>
+                {totalImpressionsWoW > 0 && <TrendingUp className="h-3 w-3" />}
+                {totalImpressionsWoW < 0 && <TrendingDown className="h-3 w-3" />}
+                {totalImpressionsWoW > 0 ? "+" : ""}{totalImpressionsWoW}%
               </span>
             )}
           </div>
