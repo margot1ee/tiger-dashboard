@@ -310,7 +310,7 @@ export default function OverviewPage() {
           <div className="h-4 w-1 bg-orange-500 rounded-full" />
           <h2 className="text-sm font-semibold uppercase tracking-wider">Website Traffic</h2>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4 mb-4">
           <MetricCard title="Visitors" value={formatNumber(ga4Visitors)} change={visitorsChange} changeLabel={periodLabel} icon={<Eye className="h-4 w-4" />} />
           <MetricCard title="Pageviews" value={formatNumber(ga4Pageviews)} change={pageviewsChange} changeLabel={periodLabel} icon={<Globe className="h-4 w-4" />} />
           <MetricCard title="Avg. Session" value={avgSessionStr} change={sessionChange} changeLabel={periodLabel} icon={<Clock className="h-4 w-4" />} />
@@ -438,18 +438,37 @@ export default function OverviewPage() {
         <Tabs defaultValue="followers" className="space-y-4">
           <TabsList>
             <TabsTrigger value="followers">Follower Trend</TabsTrigger>
+            <TabsTrigger value="impressions">Impressions Trend</TabsTrigger>
             <TabsTrigger value="traffic">Traffic Trend</TabsTrigger>
           </TabsList>
           <TabsContent value="followers">
             <TrendChart
-              title="Follower Growth (Monthly)"
-              data={followerTrend}
+              title="Follower Growth (Weekly)"
+              data={channelSheet?.followerTrend ?? followerTrend}
               lines={[
                 { dataKey: "Substack", color: "#FF6719", name: "Substack" },
-                { dataKey: "X", color: "#000000", name: "X" },
+                { dataKey: "X (Twitter)", color: "#000000", name: "X" },
                 { dataKey: "LinkedIn", color: "#0A66C2", name: "LinkedIn" },
                 { dataKey: "Telegram", color: "#26A5E4", name: "Telegram" },
-                { dataKey: "YouTube", color: "#FF0000", name: "YouTube" },
+                { dataKey: "Youtube", color: "#FF0000", name: "YouTube" },
+                { dataKey: "Xiaohongshu", color: "#FF2442", name: "小红书" },
+                { dataKey: "Instagram", color: "#E4405F", name: "Instagram" },
+              ]}
+              height={350}
+            />
+          </TabsContent>
+          <TabsContent value="impressions">
+            <TrendChart
+              title="Impressions Trend (Weekly)"
+              data={channelSheet?.impressionTrend ?? []}
+              lines={[
+                { dataKey: "Substack", color: "#FF6719", name: "Substack" },
+                { dataKey: "X (Twitter)", color: "#000000", name: "X" },
+                { dataKey: "LinkedIn", color: "#0A66C2", name: "LinkedIn" },
+                { dataKey: "Telegram", color: "#26A5E4", name: "Telegram" },
+                { dataKey: "Youtube", color: "#FF0000", name: "YouTube" },
+                { dataKey: "Xiaohongshu", color: "#FF2442", name: "小红书" },
+                { dataKey: "Instagram", color: "#E4405F", name: "Instagram" },
               ]}
               height={350}
             />

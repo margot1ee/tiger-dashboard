@@ -105,8 +105,50 @@ export async function GET() {
       }
     }
 
+    // Build trend arrays from all date columns
+    const dates = headerRow.slice(3);
+    const followerTrend: Record<string, unknown>[] = [];
+    const impressionTrend: Record<string, unknown>[] = [];
+
+    for (let colIdx = 0; colIdx < dates.length; colIdx++) {
+      const date = dates[colIdx];
+      if (!date) continue;
+      const folPoint: Record<string, unknown> = { date };
+      const impPoint: Record<string, unknown> = { date };
+      let currentPlatform2 = "";
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const platform = row[0]?.trim();
+        const metric = row[1]?.trim();
+        if (platform) currentPlatform2 = platform;
+        if (!currentPlatform2 || !metric) continue;
+
+        const chKey = platformMap[currentPlatform2];
+        const mKey = metricMap[metric];
+        if (!chKey || !mKey) continue;
+
+        const val = parseNumber(row[colIdx + 3]);
+        if (val === 0) continue;
+
+        const displayName = currentPlatform2
+          .replace("KR TG", "Telegram")
+          .replace("ID IG", "Instagram")
+          .replace("JP X", "X (JP)");
+
+        if (mKey === "followers") {
+          folPoint[displayName] = val;
+        } else if (mKey === "impressions") {
+          impPoint[displayName] = val;
+        }
+      }
+
+      if (Object.keys(folPoint).length > 1) followerTrend.push(folPoint);
+      if (Object.keys(impPoint).length > 1) impressionTrend.push(impPoint);
+    }
+
     return NextResponse.json(
-      { channels, currentDate, prevDate },
+      { channels, currentDate, prevDate, followerTrend, impressionTrend },
       { headers: { "Cache-Control": "s-maxage=300, stale-while-revalidate" } }
     );
   } catch (e) {

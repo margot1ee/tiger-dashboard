@@ -220,6 +220,8 @@ export interface ChannelSheetData {
   }>;
   currentDate: string;
   prevDate: string;
+  followerTrend: Record<string, unknown>[];
+  impressionTrend: Record<string, unknown>[];
 }
 export function useChannelSheet() {
   return useApiData<ChannelSheetData>("/api/channel-sheet");
