@@ -252,65 +252,66 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        {/* Follower Cards */}
-        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Followers</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
-          {channelOrder.map((key) => {
-            const ch = mergedMetrics[key as keyof typeof mergedMetrics];
-            if (!ch) return null;
-            const change = getChange(key);
-            const isPositive = change !== undefined && change > 0;
-            const isNegative = change !== undefined && change < 0;
-            return (
-              <Card key={key} className={`border ${channelColors[key] || ""} transition-all hover:shadow-md`}>
-                <CardContent className="py-4 px-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="h-8 w-8 rounded-lg bg-white/80 border flex items-center justify-center shadow-sm">
-                      {channelIcons[key]}
-                    </div>
-                    {change !== undefined && (
-                      <span className={`text-xs font-semibold flex items-center gap-0.5 ${isPositive ? "text-green-600" : isNegative ? "text-red-500" : "text-muted-foreground"}`}>
-                        {isPositive && <TrendingUp className="h-3 w-3" />}
-                        {isNegative && <TrendingDown className="h-3 w-3" />}
-                        {isPositive ? "+" : ""}{change}%
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-2xl font-bold tracking-tight">{formatNumber(ch.followers)}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{ch.name}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* Impressions Cards */}
-        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Impressions</p>
+        {/* Combined Channel Cards: Followers + Impressions */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {channelOrder.map((key) => {
-            const ch = mergedMetrics[key as keyof typeof mergedMetrics] as { name: string; impressions?: number; impressionsChange?: number; color: string };
+            const ch = mergedMetrics[key as keyof typeof mergedMetrics] as {
+              name: string; followers: number; change: number; color: string;
+              impressions?: number; impressionsChange?: number;
+            };
             if (!ch) return null;
+            const folChange = getChange(key);
+            const folPos = folChange !== undefined && folChange > 0;
+            const folNeg = folChange !== undefined && folChange < 0;
             const imp = ch.impressions ?? 0;
             const impChange = ch.impressionsChange ?? 0;
-            const isPositive = impChange > 0;
-            const isNegative = impChange < 0;
+            const impPos = impChange > 0;
+            const impNeg = impChange < 0;
             return (
-              <Card key={key} className={`border ${channelColors[key] || ""} transition-all hover:shadow-md`}>
+              <Card key={key} className="border transition-all hover:shadow-md">
                 <CardContent className="py-4 px-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="h-8 w-8 rounded-lg bg-white/80 border flex items-center justify-center shadow-sm">
+                  {/* Channel header */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-7 w-7 rounded-lg bg-white/80 border flex items-center justify-center shadow-sm">
                       {channelIcons[key]}
                     </div>
-                    {impChange !== 0 && (
-                      <span className={`text-xs font-semibold flex items-center gap-0.5 ${isPositive ? "text-green-600" : isNegative ? "text-red-500" : "text-muted-foreground"}`}>
-                        {isPositive && <TrendingUp className="h-3 w-3" />}
-                        {isNegative && <TrendingDown className="h-3 w-3" />}
-                        {isPositive ? "+" : ""}{impChange}%
+                    <span className="text-sm font-semibold">{ch.name}</span>
+                  </div>
+
+                  {/* Followers row */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Followers</span>
+                    </div>
+                    {folChange !== undefined && (
+                      <span className={`text-[10px] font-semibold flex items-center gap-0.5 ${folPos ? "text-green-600" : folNeg ? "text-red-500" : "text-muted-foreground"}`}>
+                        {folPos && <TrendingUp className="h-2.5 w-2.5" />}
+                        {folNeg && <TrendingDown className="h-2.5 w-2.5" />}
+                        {folPos ? "+" : ""}{folChange}%
                       </span>
                     )}
                   </div>
-                  <p className="text-2xl font-bold tracking-tight">{formatNumber(imp)}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{ch.name}</p>
+                  <p className="text-xl font-bold tracking-tight mt-0.5">{formatNumber(ch.followers)}</p>
+
+                  {/* Divider */}
+                  <div className="border-t border-dashed my-2.5" />
+
+                  {/* Impressions row */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Eye className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Impressions</span>
+                    </div>
+                    {impChange !== 0 && (
+                      <span className={`text-[10px] font-semibold flex items-center gap-0.5 ${impPos ? "text-green-600" : impNeg ? "text-red-500" : "text-muted-foreground"}`}>
+                        {impPos && <TrendingUp className="h-2.5 w-2.5" />}
+                        {impNeg && <TrendingDown className="h-2.5 w-2.5" />}
+                        {impPos ? "+" : ""}{impChange}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xl font-bold tracking-tight mt-0.5">{formatNumber(imp)}</p>
                 </CardContent>
               </Card>
             );
