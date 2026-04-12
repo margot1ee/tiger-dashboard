@@ -132,15 +132,24 @@ export default function OverviewPage() {
       followers: substackStats.subscribers,
       impressions: substackStats.views,
       impressionsChange: substackStats.viewsChangePercent,
+      followersDetail: `${substackStats.subscribersChange >= 0 ? "+" : ""}${substackStats.subscribersChange}`,
+      impressionsDetail: `prev ${formatNumber(substackStats.prevViews)}`,
     };
   }
   // YouTube: live subscribers + Analytics API for period views
   if (ytData) {
+    const ytNetSubs = ytAnalytics?.netSubscribers;
+    const ytSubsGained = ytAnalytics?.subscribersGained;
+    const ytSubsLost = ytAnalytics?.subscribersLost;
     mergedMetrics.youtube = {
       ...mergedMetrics.youtube,
       followers: ytData.channel.subscribers,
       impressions: ytAnalytics?.views ?? ytData.channel.totalViews,
       impressionsChange: ytAnalytics?.viewsChangePercent ?? 0,
+      ...(ytNetSubs !== undefined ? {
+        followersDetail: `${ytNetSubs >= 0 ? "+" : ""}${ytNetSubs} (↑${ytSubsGained} ↓${ytSubsLost})`,
+        impressionsDetail: `prev ${formatNumber(ytAnalytics?.prevViews ?? 0)}`,
+      } : {}),
     };
   }
   // Telegram: live members + post views filtered by period
@@ -322,6 +331,7 @@ export default function OverviewPage() {
             const ch = mergedMetrics[key as keyof typeof mergedMetrics] as {
               name: string; followers: number; change: number; color: string;
               impressions?: number; impressionsChange?: number;
+              followersDetail?: string; impressionsDetail?: string;
             };
             if (!ch) return null;
             const folChange = getChange(key);
@@ -356,7 +366,12 @@ export default function OverviewPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xl font-bold tracking-tight mt-0.5">{formatNumber(ch.followers)}</p>
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <p className="text-xl font-bold tracking-tight">{formatNumber(ch.followers)}</p>
+                    {ch.followersDetail && (
+                      <span className="text-[10px] text-muted-foreground">({ch.followersDetail})</span>
+                    )}
+                  </div>
 
                   {/* Divider */}
                   <div className="border-t border-dashed my-2.5" />
@@ -375,7 +390,12 @@ export default function OverviewPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xl font-bold tracking-tight mt-0.5">{formatNumber(imp)}</p>
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <p className="text-xl font-bold tracking-tight">{formatNumber(imp)}</p>
+                    {ch.impressionsDetail && (
+                      <span className="text-[10px] text-muted-foreground">({ch.impressionsDetail})</span>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
