@@ -252,8 +252,9 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        {/* Channel Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {/* Follower Cards */}
+        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Followers</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
           {channelOrder.map((key) => {
             const ch = mergedMetrics[key as keyof typeof mergedMetrics];
             if (!ch) return null;
@@ -276,6 +277,39 @@ export default function OverviewPage() {
                     )}
                   </div>
                   <p className="text-2xl font-bold tracking-tight">{formatNumber(ch.followers)}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{ch.name}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Impressions Cards */}
+        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Impressions</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {channelOrder.map((key) => {
+            const ch = mergedMetrics[key as keyof typeof mergedMetrics] as { name: string; impressions?: number; impressionsChange?: number; color: string };
+            if (!ch) return null;
+            const imp = ch.impressions ?? 0;
+            const impChange = ch.impressionsChange ?? 0;
+            const isPositive = impChange > 0;
+            const isNegative = impChange < 0;
+            return (
+              <Card key={key} className={`border ${channelColors[key] || ""} transition-all hover:shadow-md`}>
+                <CardContent className="py-4 px-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="h-8 w-8 rounded-lg bg-white/80 border flex items-center justify-center shadow-sm">
+                      {channelIcons[key]}
+                    </div>
+                    {impChange !== 0 && (
+                      <span className={`text-xs font-semibold flex items-center gap-0.5 ${isPositive ? "text-green-600" : isNegative ? "text-red-500" : "text-muted-foreground"}`}>
+                        {isPositive && <TrendingUp className="h-3 w-3" />}
+                        {isNegative && <TrendingDown className="h-3 w-3" />}
+                        {isPositive ? "+" : ""}{impChange}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-2xl font-bold tracking-tight">{formatNumber(imp)}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{ch.name}</p>
                 </CardContent>
               </Card>
