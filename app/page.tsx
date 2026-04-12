@@ -198,27 +198,22 @@ export default function OverviewPage() {
     }
   }
   // Channel Sheet: fill in channels not yet connected via API
-  // (x, linkedin, xiaohongshu, instagram_id, x_jp)
   if (channelSheet?.channels) {
     const sheetOnlyChannels = ["x", "linkedin", "xiaohongshu", "instagram_id", "x_jp"];
     for (const key of sheetOnlyChannels) {
       const sh = channelSheet.channels[key];
       if (!sh || !mergedMetrics[key]) continue;
-      // Only override if no live API data (followers still at demo value)
       const current = mergedMetrics[key];
-      const isDemo = current.followers === channelMetrics[key as keyof typeof channelMetrics]?.followers;
-      if (isDemo || key !== "x") {
-        mergedMetrics[key] = {
-          ...current,
-          followers: sh.followers || current.followers,
-          change: sh.followersChangePercent || current.change,
-          impressions: sh.impressions || current.impressions,
-          impressionsChange: sh.impressionsChangePercent || current.impressionsChange,
-          followersRaw: key === "x" ? undefined : current.followersRaw,
-          followersDetail: sh.followersChange ? `${sh.followersChange >= 0 ? "+" : ""}${sh.followersChange}` : current.followersDetail,
-          impressionsDetail: sh.prevImpressions > 0 ? `prev ${formatNumber(sh.prevImpressions)}` : current.impressionsDetail,
-        };
-      }
+      mergedMetrics[key] = {
+        ...current,
+        followers: sh.followers || current.followers,
+        change: sh.followersChangePercent || current.change,
+        impressions: sh.impressions,
+        impressionsChange: sh.impressionsChangePercent || current.impressionsChange,
+        followersRaw: sh.followers,
+        followersDetail: sh.followersChange !== 0 ? `${sh.followersChange >= 0 ? "+" : ""}${sh.followersChange}` : undefined,
+        impressionsDetail: sh.prevImpressions > 0 ? `prev ${formatNumber(sh.prevImpressions)}` : undefined,
+      };
     }
   }
 
@@ -422,8 +417,8 @@ export default function OverviewPage() {
                     )}
                   </div>
                   <div className="flex items-baseline gap-1.5 mt-0.5">
-                    <p className="text-xl font-bold tracking-tight">{formatNumber(imp)}</p>
-                    {ch.impressionsDetail && (
+                    <p className="text-xl font-bold tracking-tight">{imp > 0 ? formatNumber(imp) : "-"}</p>
+                    {imp > 0 && ch.impressionsDetail && (
                       <span className="text-[10px] text-muted-foreground">({ch.impressionsDetail})</span>
                     )}
                   </div>
