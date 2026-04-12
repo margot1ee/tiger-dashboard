@@ -80,6 +80,8 @@ export interface SubstackStatsData {
   subscribers: number;
   subscribersStart: number;
   subscribersChange: number;
+  subsGained: number;
+  subsLost: number;
   paidSubscribers: number;
   appSubscribers: number;
   views: number;

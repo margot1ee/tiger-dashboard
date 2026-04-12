@@ -61,11 +61,25 @@ export async function GET(request: Request) {
       }
     }
 
-    // Fetch recent posts with stats
+    // Fetch recent posts with stats (up to 50 for subscriber gain/loss calculation)
     const postsRes = await fetch(
-      `${BASE_URL}/published?offset=0&limit=10&order_by=post_date&order_direction=desc`,
+      `${BASE_URL}/published?offset=0&limit=50&order_by=post_date&order_direction=desc`,
       { headers, next: { revalidate: 3600 } }
     );
+
+    interface RawPost {
+      title: string;
+      slug: string;
+      post_date: string;
+      stats?: {
+        views?: number;
+        open_rate?: number;
+        click_through_rate?: number;
+        signups_within_1_day?: number;
+        disables_within_1_day?: number;
+      };
+      reaction_count?: number;
+    }
 
     let posts: {
       title: string;
@@ -77,36 +91,44 @@ export async function GET(request: Request) {
       reactions: number;
     }[] = [];
 
+    let subsGained = 0;
+    let subsLost = 0;
+
     if (postsRes.ok) {
       const postsData = await postsRes.json();
-      posts = (postsData.posts || []).map(
-        (p: {
-          title: string;
-          slug: string;
-          post_date: string;
-          stats?: {
-            views?: number;
-            open_rate?: number;
-            click_through_rate?: number;
-          };
-          reaction_count?: number;
-        }) => ({
-          title: p.title,
-          slug: p.slug,
-          postDate: p.post_date,
-          views: p.stats?.views ?? 0,
-          openRate: Math.round((p.stats?.open_rate ?? 0) * 10000) / 100,
-          clickRate:
-            Math.round((p.stats?.click_through_rate ?? 0) * 10000) / 100,
-          reactions: p.reaction_count ?? 0,
-        })
-      );
+      const rangeDays = Number(range);
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - rangeDays);
+      const cutoffStr = cutoffDate.toISOString();
+
+      const allPosts: RawPost[] = postsData.posts || [];
+
+      // Filter posts within the selected period for subscriber gain/loss
+      for (const p of allPosts) {
+        if (p.post_date >= cutoffStr) {
+          subsGained += p.stats?.signups_within_1_day ?? 0;
+          subsLost += p.stats?.disables_within_1_day ?? 0;
+        }
+      }
+
+      posts = allPosts.slice(0, 10).map((p: RawPost) => ({
+        title: p.title,
+        slug: p.slug,
+        postDate: p.post_date,
+        views: p.stats?.views ?? 0,
+        openRate: Math.round((p.stats?.open_rate ?? 0) * 10000) / 100,
+        clickRate:
+          Math.round((p.stats?.click_through_rate ?? 0) * 10000) / 100,
+        reactions: p.reaction_count ?? 0,
+      }));
     }
 
     return NextResponse.json({
       subscribers: periodSubscribersEnd,
       subscribersStart: periodSubscribersStart,
       subscribersChange: periodSubscribersEnd - periodSubscribersStart,
+      subsGained,
+      subsLost,
       paidSubscribers: summary.subscribers ?? 0,
       appSubscribers: summary.appSubscribers ?? 0,
       views: periodViews,

@@ -132,13 +132,17 @@ export default function OverviewPage() {
   // Substack: live subscribers + period views from internal API
   if (substackStats) {
     const subChange = substackStats.subscribersChange;
+    const gained = substackStats.subsGained;
+    const lost = substackStats.subsLost;
     mergedMetrics.substack = {
       ...mergedMetrics.substack,
       followers: substackStats.subscribers,
       impressions: substackStats.views,
       impressionsChange: substackStats.viewsChangePercent,
       followersRaw: substackStats.subscribers,
-      followersDetail: `${subChange >= 0 ? "+" : ""}${subChange}`,
+      followersDetail: gained > 0 || lost > 0
+        ? `${subChange >= 0 ? "+" : ""}${subChange}, ↑${gained} ↓${lost}`
+        : `${subChange >= 0 ? "+" : ""}${subChange}`,
       impressionsDetail: `prev ${formatNumber(substackStats.prevViews)}`,
     };
   }
