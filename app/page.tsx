@@ -10,7 +10,7 @@ import {
   trafficData,
   trafficSources,
 } from "@/lib/demo-data";
-import { useYouTubeData, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats } from "@/lib/hooks";
+import { useYouTubeData, useYouTubeAnalytics, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats } from "@/lib/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Globe,
@@ -118,6 +118,7 @@ export default function OverviewPage() {
   const { data: tgPosts } = useTelegramPosts();
   const periodDays = useMemo(() => getPeriodDays(period, customFrom, customTo), [period, customFrom, customTo]);
   const { data: substackStats } = useSubstackStats(periodDays);
+  const { data: ytAnalytics } = useYouTubeAnalytics(periodDays);
   const { data: dbMetrics } = useChannelMetrics(true);
   const { comparisons, prevFromStr, prevToStr } = useComparisonMetrics(from, to);
   const { data: ga4Data } = useGA4Data(from, to);
@@ -133,18 +134,13 @@ export default function OverviewPage() {
       impressionsChange: substackStats.viewsChangePercent,
     };
   }
-  // YouTube: live subscribers + period-filtered video views
+  // YouTube: live subscribers + Analytics API for period views
   if (ytData) {
-    const filteredYtVideos = ytData.videos?.filter((v) => {
-      const pubDate = v.publishedAt?.split("T")[0];
-      return pubDate >= from && pubDate <= to;
-    }) ?? [];
-    const ytPeriodViews = filteredYtVideos.reduce((s, v) => s + (v.views ?? 0), 0);
     mergedMetrics.youtube = {
       ...mergedMetrics.youtube,
       followers: ytData.channel.subscribers,
-      impressions: ytPeriodViews > 0 ? ytPeriodViews : ytData.channel.totalViews,
-      ...(ytPeriodViews > 0 ? { impressionsChange: 0 } : {}),
+      impressions: ytAnalytics?.views ?? ytData.channel.totalViews,
+      impressionsChange: ytAnalytics?.viewsChangePercent ?? 0,
     };
   }
   // Telegram: live members + post views filtered by period

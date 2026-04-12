@@ -48,6 +48,24 @@ export function useYouTubeData() {
   return useApiData<YouTubeData>("/api/youtube");
 }
 
+// YouTube Analytics (period-based)
+export interface YouTubeAnalyticsData {
+  views: number;
+  prevViews: number;
+  viewsChangePercent: number;
+  subscribersGained: number;
+  subscribersLost: number;
+  netSubscribers: number;
+  prevNetSubscribers: number;
+  watchMinutes: number;
+  days: number;
+  period: string;
+}
+export function useYouTubeAnalytics(days?: number) {
+  const params = days ? `?days=${days}` : "";
+  return useApiData<YouTubeAnalyticsData>(`/api/youtube-analytics${params}`);
+}
+
 // Substack
 interface SubstackData {
   posts: { title: string; link: string; pubDate: string; description: string }[];
