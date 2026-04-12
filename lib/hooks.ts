@@ -206,6 +206,25 @@ export function useChannelMetricsRange(from: string, to: string) {
   );
 }
 
+// Channel Sheet (Marketing Performance spreadsheet)
+export interface ChannelSheetData {
+  channels: Record<string, {
+    followers: number;
+    prevFollowers: number;
+    followersChange: number;
+    followersChangePercent: number;
+    impressions: number;
+    prevImpressions: number;
+    impressionsChange: number;
+    impressionsChangePercent: number;
+  }>;
+  currentDate: string;
+  prevDate: string;
+}
+export function useChannelSheet() {
+  return useApiData<ChannelSheetData>("/api/channel-sheet");
+}
+
 // Comparison hook: fetches current period + previous period
 export interface ComparisonResult {
   channel: string;

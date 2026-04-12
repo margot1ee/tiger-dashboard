@@ -10,7 +10,7 @@ import {
   trafficData,
   trafficSources,
 } from "@/lib/demo-data";
-import { useYouTubeData, useYouTubeAnalytics, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats } from "@/lib/hooks";
+import { useYouTubeData, useYouTubeAnalytics, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats, useChannelSheet } from "@/lib/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Globe,
@@ -119,6 +119,7 @@ export default function OverviewPage() {
   const periodDays = useMemo(() => getPeriodDays(period, customFrom, customTo), [period, customFrom, customTo]);
   const { data: substackStats } = useSubstackStats(periodDays);
   const { data: ytAnalytics } = useYouTubeAnalytics(periodDays);
+  const { data: channelSheet } = useChannelSheet();
   const { data: dbMetrics } = useChannelMetrics(true);
   const { comparisons, prevFromStr, prevToStr } = useComparisonMetrics(from, to);
   const { data: ga4Data } = useGA4Data(from, to);
@@ -194,6 +195,30 @@ export default function OverviewPage() {
     for (const row of dbMetrics.metrics) {
       const key = row.channel as string;
       if (mergedMetrics[key] && row.followers != null) mergedMetrics[key] = { ...mergedMetrics[key], followers: row.followers };
+    }
+  }
+  // Channel Sheet: fill in channels not yet connected via API
+  // (x, linkedin, xiaohongshu, instagram_id, x_jp)
+  if (channelSheet?.channels) {
+    const sheetOnlyChannels = ["x", "linkedin", "xiaohongshu", "instagram_id", "x_jp"];
+    for (const key of sheetOnlyChannels) {
+      const sh = channelSheet.channels[key];
+      if (!sh || !mergedMetrics[key]) continue;
+      // Only override if no live API data (followers still at demo value)
+      const current = mergedMetrics[key];
+      const isDemo = current.followers === channelMetrics[key as keyof typeof channelMetrics]?.followers;
+      if (isDemo || key !== "x") {
+        mergedMetrics[key] = {
+          ...current,
+          followers: sh.followers || current.followers,
+          change: sh.followersChangePercent || current.change,
+          impressions: sh.impressions || current.impressions,
+          impressionsChange: sh.impressionsChangePercent || current.impressionsChange,
+          followersRaw: key === "x" ? undefined : current.followersRaw,
+          followersDetail: sh.followersChange ? `${sh.followersChange >= 0 ? "+" : ""}${sh.followersChange}` : current.followersDetail,
+          impressionsDetail: sh.prevImpressions > 0 ? `prev ${formatNumber(sh.prevImpressions)}` : current.impressionsDetail,
+        };
+      }
     }
   }
 
