@@ -59,7 +59,7 @@ export function BarChart({
               </>
             ) : (
               <>
-                <XAxis dataKey={nameKey} tick={{ fontSize: 11 }} />
+                <XAxis dataKey={nameKey} tick={{ fontSize: 10, angle: -35, textAnchor: "end" }} interval={0} height={60} />
                 <YAxis tick={{ fontSize: 11 }} />
               </>
             )}
