@@ -127,12 +127,14 @@ export default function OverviewPage() {
   const mergedMetrics = { ...channelMetrics };
   // Substack: live subscribers + period views from internal API
   if (substackStats) {
+    const subChange = substackStats.subscribersChange;
     mergedMetrics.substack = {
       ...mergedMetrics.substack,
       followers: substackStats.subscribers,
       impressions: substackStats.views,
       impressionsChange: substackStats.viewsChangePercent,
-      followersDetail: `${substackStats.subscribersChange >= 0 ? "+" : ""}${substackStats.subscribersChange}`,
+      followersRaw: substackStats.subscribers,
+      followersDetail: `${subChange >= 0 ? "+" : ""}${subChange}`,
       impressionsDetail: `prev ${formatNumber(substackStats.prevViews)}`,
     };
   }
@@ -332,6 +334,7 @@ export default function OverviewPage() {
               name: string; followers: number; change: number; color: string;
               impressions?: number; impressionsChange?: number;
               followersDetail?: string; impressionsDetail?: string;
+              followersRaw?: number;
             };
             if (!ch) return null;
             const folChange = getChange(key);
@@ -367,7 +370,7 @@ export default function OverviewPage() {
                     )}
                   </div>
                   <div className="flex items-baseline gap-1.5 mt-0.5">
-                    <p className="text-xl font-bold tracking-tight">{formatNumber(ch.followers)}</p>
+                    <p className="text-xl font-bold tracking-tight">{ch.followersRaw ? ch.followersRaw.toLocaleString() : formatNumber(ch.followers)}</p>
                     {ch.followersDetail && (
                       <span className="text-[10px] text-muted-foreground">({ch.followersDetail})</span>
                     )}
