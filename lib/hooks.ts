@@ -68,8 +68,9 @@ export interface SubstackStatsData {
   openRateDiff: number;
   posts: { title: string; slug: string; postDate: string; views: number; openRate: number; clickRate: number; reactions: number }[];
 }
-export function useSubstackStats() {
-  return useApiData<SubstackStatsData>("/api/substack-stats");
+export function useSubstackStats(rangeDays?: number) {
+  const params = rangeDays ? `?range=${rangeDays}` : "";
+  return useApiData<SubstackStatsData>(`/api/substack-stats${params}`);
 }
 
 // GA4

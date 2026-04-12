@@ -88,6 +88,22 @@ function getPeriodLabel(period: PeriodKey) {
   }
 }
 
+function getPeriodDays(period: PeriodKey, customFrom?: string, customTo?: string): number {
+  switch (period) {
+    case "7D": return 7;
+    case "4W": return 28;
+    case "3M": return 90;
+    case "6M": return 180;
+    case "1Y": return 365;
+    case "custom": {
+      if (customFrom && customTo) {
+        return Math.ceil((new Date(customTo).getTime() - new Date(customFrom).getTime()) / (1000 * 60 * 60 * 24));
+      }
+      return 30;
+    }
+  }
+}
+
 export default function OverviewPage() {
   const [period, setPeriod] = useState<PeriodKey>("7D");
   const [customFrom, setCustomFrom] = useState("");
@@ -100,7 +116,8 @@ export default function OverviewPage() {
   const { data: xData } = useXData();
   const { data: xJpData } = useXData("tr_japan_");
   const { data: tgPosts } = useTelegramPosts();
-  const { data: substackStats } = useSubstackStats();
+  const periodDays = useMemo(() => getPeriodDays(period, customFrom, customTo), [period, customFrom, customTo]);
+  const { data: substackStats } = useSubstackStats(periodDays);
   const { data: dbMetrics } = useChannelMetrics(true);
   const { comparisons, prevFromStr, prevToStr } = useComparisonMetrics(from, to);
   const { data: ga4Data } = useGA4Data(from, to);

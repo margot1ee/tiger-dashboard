@@ -16,11 +16,19 @@ function getHeaders() {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const headers = getHeaders();
+    const { searchParams } = new URL(request.url);
+    const range = searchParams.get("range") || "30"; // days: 7, 30, 90, 365
 
-    // Fetch summary (subscribers, views, open rate)
+    // Fetch summary-v2 with range parameter (views by period)
+    const summaryV2Res = await fetch(`${BASE_URL}/summary-v2?range=${range}`, {
+      headers,
+      next: { revalidate: 3600 },
+    });
+
+    // Fetch summary (subscribers, open rate - always current)
     const summaryRes = await fetch(`${BASE_URL}/summary`, {
       headers,
       next: { revalidate: 3600 },
@@ -34,6 +42,17 @@ export async function GET() {
     }
 
     const summary = await summaryRes.json();
+
+    let periodViews = summary.views ?? 0;
+    let periodSubscribersStart = 0;
+    let periodSubscribersEnd = summary.totalEmail ?? 0;
+
+    if (summaryV2Res.ok) {
+      const v2 = await summaryV2Res.json();
+      periodViews = v2.totalViewsEnd - v2.totalViewsStart;
+      periodSubscribersStart = v2.totalSubscribersStart ?? 0;
+      periodSubscribersEnd = v2.totalSubscribersEnd ?? summary.totalEmail ?? 0;
+    }
 
     // Fetch recent posts with stats
     const postsRes = await fetch(
@@ -78,13 +97,16 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      subscribers: summary.totalEmail ?? 0,
+      subscribers: periodSubscribersEnd,
+      subscribersStart: periodSubscribersStart,
+      subscribersChange: periodSubscribersEnd - periodSubscribersStart,
       paidSubscribers: summary.subscribers ?? 0,
       appSubscribers: summary.appSubscribers ?? 0,
-      views: summary.views ?? 0,
+      views: periodViews,
       viewsDelta: summary.viewsDelta ?? 0,
       openRate: Math.round((summary.openRate ?? 0) * 100) / 100,
       openRateDiff: Math.round((summary.openRateDiff ?? 0) * 100) / 100,
+      range: Number(range),
       posts,
     });
   } catch (e) {
