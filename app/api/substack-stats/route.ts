@@ -44,14 +44,21 @@ export async function GET(request: Request) {
     const summary = await summaryRes.json();
 
     let periodViews = summary.views ?? 0;
+    let prevPeriodViews = 0;
     let periodSubscribersStart = 0;
     let periodSubscribersEnd = summary.totalEmail ?? 0;
+    let viewsChangePercent = 0;
 
     if (summaryV2Res.ok) {
       const v2 = await summaryV2Res.json();
-      periodViews = v2.totalViewsEnd - v2.totalViewsStart;
+      // End = current period, Start = previous same-length period
+      periodViews = v2.totalViewsEnd ?? 0;
+      prevPeriodViews = v2.totalViewsStart ?? 0;
       periodSubscribersStart = v2.totalSubscribersStart ?? 0;
       periodSubscribersEnd = v2.totalSubscribersEnd ?? summary.totalEmail ?? 0;
+      if (prevPeriodViews > 0) {
+        viewsChangePercent = Math.round(((periodViews - prevPeriodViews) / prevPeriodViews) * 1000) / 10;
+      }
     }
 
     // Fetch recent posts with stats
@@ -103,7 +110,8 @@ export async function GET(request: Request) {
       paidSubscribers: summary.subscribers ?? 0,
       appSubscribers: summary.appSubscribers ?? 0,
       views: periodViews,
-      viewsDelta: summary.viewsDelta ?? 0,
+      prevViews: prevPeriodViews,
+      viewsChangePercent,
       openRate: Math.round((summary.openRate ?? 0) * 100) / 100,
       openRateDiff: Math.round((summary.openRateDiff ?? 0) * 100) / 100,
       range: Number(range),

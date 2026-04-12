@@ -63,7 +63,8 @@ export interface SubstackStatsData {
   paidSubscribers: number;
   appSubscribers: number;
   views: number;
-  viewsDelta: number;
+  prevViews: number;
+  viewsChangePercent: number;
   openRate: number;
   openRateDiff: number;
   posts: { title: string; slug: string; postDate: string; views: number; openRate: number; clickRate: number; reactions: number }[];

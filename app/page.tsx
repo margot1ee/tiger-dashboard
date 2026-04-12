@@ -124,29 +124,37 @@ export default function OverviewPage() {
   const { data: ga4PrevData } = useGA4Data(prevFromStr, prevToStr);
 
   const mergedMetrics = { ...channelMetrics };
-  // Substack: live subscribers + views from internal API
+  // Substack: live subscribers + period views from internal API
   if (substackStats) {
     mergedMetrics.substack = {
       ...mergedMetrics.substack,
       followers: substackStats.subscribers,
       impressions: substackStats.views,
+      impressionsChange: substackStats.viewsChangePercent,
     };
   }
-  // YouTube: live subscribers + total views as impressions
+  // YouTube: live subscribers + period-filtered video views
   if (ytData) {
+    const filteredYtVideos = ytData.videos?.filter((v) => {
+      const pubDate = v.publishedAt?.split("T")[0];
+      return pubDate >= from && pubDate <= to;
+    }) ?? [];
+    const ytPeriodViews = filteredYtVideos.reduce((s, v) => s + (v.views ?? 0), 0);
     mergedMetrics.youtube = {
       ...mergedMetrics.youtube,
       followers: ytData.channel.subscribers,
-      impressions: ytData.channel.totalViews,
+      impressions: ytPeriodViews > 0 ? ytPeriodViews : ytData.channel.totalViews,
+      ...(ytPeriodViews > 0 ? { impressionsChange: 0 } : {}),
     };
   }
-  // Telegram: live members + post views as impressions
+  // Telegram: live members + post views filtered by period
   if (tgData) {
-    const tgImpressions = tgPosts?.posts?.reduce((s, p) => s + (p.views ?? 0), 0) ?? 0;
+    const filteredTgPosts = tgPosts?.posts?.filter((p) => p.date >= from && p.date <= to) ?? [];
+    const tgImpressions = filteredTgPosts.reduce((s, p) => s + (p.views ?? 0), 0);
     mergedMetrics.telegram = {
       ...mergedMetrics.telegram,
       followers: tgData.channel.members,
-      ...(tgImpressions > 0 ? { impressions: tgImpressions } : {}),
+      ...(tgImpressions > 0 ? { impressions: tgImpressions, impressionsChange: 0 } : {}),
     };
   }
   // X: live followers + tweet impressions
