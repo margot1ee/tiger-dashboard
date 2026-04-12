@@ -15,7 +15,36 @@ import {
   Users,
 } from "lucide-react";
 import { useState, useMemo } from "react";
+import { Calendar } from "lucide-react";
 import { useChannelSheet, useSubstackStats, useYouTubeAnalytics, useSearchConsoleData } from "@/lib/hooks";
+
+type PeriodKey = "7D" | "4W" | "3M" | "6M" | "1Y" | "custom";
+
+function getPeriodDays(period: PeriodKey): number {
+  switch (period) {
+    case "7D": return 7;
+    case "4W": return 28;
+    case "3M": return 90;
+    case "6M": return 180;
+    case "1Y": return 365;
+    default: return 7;
+  }
+}
+
+function getDateRange(period: PeriodKey, customFrom?: string, customTo?: string) {
+  const to = new Date();
+  const toStr = to.toISOString().split("T")[0];
+  if (period === "custom" && customFrom && customTo) return { from: customFrom, to: customTo };
+  const from = new Date();
+  switch (period) {
+    case "7D": from.setDate(from.getDate() - 7); break;
+    case "4W": from.setDate(from.getDate() - 28); break;
+    case "3M": from.setMonth(from.getMonth() - 3); break;
+    case "6M": from.setMonth(from.getMonth() - 6); break;
+    case "1Y": from.setFullYear(from.getFullYear() - 1); break;
+  }
+  return { from: from.toISOString().split("T")[0], to: toStr };
+}
 
 interface Insight {
   type: "growth" | "spike" | "decline" | "alert" | "keyword";
@@ -39,10 +68,17 @@ function formatNumber(n: number) {
 
 export default function InsightsPage() {
   const [copied, setCopied] = useState(false);
+  const [period, setPeriod] = useState<PeriodKey>("7D");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+
+  const periodDays = useMemo(() => getPeriodDays(period), [period]);
+  const { from, to } = useMemo(() => getDateRange(period, customFrom, customTo), [period, customFrom, customTo]);
+
   const { data: channelSheet } = useChannelSheet();
-  const { data: substackStats } = useSubstackStats(7);
-  const { data: ytAnalytics } = useYouTubeAnalytics(7);
-  const { data: searchData } = useSearchConsoleData();
+  const { data: substackStats } = useSubstackStats(periodDays);
+  const { data: ytAnalytics } = useYouTubeAnalytics(periodDays);
+  const { data: searchData } = useSearchConsoleData(from, to);
 
   const insights = useMemo(() => {
     const list: Insight[] = [];
@@ -181,22 +217,55 @@ export default function InsightsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Weekly Insights</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Insights</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Auto-generated from live channel data
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleCopy}>
-          {copied ? (
-            <CheckCheck className="h-4 w-4 mr-1.5" />
-          ) : (
-            <Copy className="h-4 w-4 mr-1.5" />
-          )}
-          {copied ? "Copied!" : "Copy as Markdown"}
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <div className="flex bg-muted rounded-lg p-0.5">
+              {(["7D", "4W", "3M", "6M", "1Y", "custom"] as PeriodKey[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                    period === p
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {p === "custom" ? "Custom" : p}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleCopy}>
+            {copied ? (
+              <CheckCheck className="h-4 w-4 mr-1.5" />
+            ) : (
+              <Copy className="h-4 w-4 mr-1.5" />
+            )}
+            {copied ? "Copied!" : "Copy as MD"}
+          </Button>
+        </div>
       </div>
+
+      {period === "custom" && (
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-muted-foreground">From</span>
+          <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm bg-background" />
+          <span className="text-muted-foreground">to</span>
+          <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="border rounded-lg px-3 py-1.5 text-sm bg-background" />
+        </div>
+      )}
+
+      {period !== "custom" && (
+        <div className="text-xs text-muted-foreground">{from} ~ {to}</div>
+      )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-3 gap-3">
