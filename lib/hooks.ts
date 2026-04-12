@@ -57,6 +57,21 @@ export function useSubstackData() {
   return useApiData<SubstackData>("/api/substack");
 }
 
+// Substack Internal Stats (dashboard API)
+export interface SubstackStatsData {
+  subscribers: number;
+  paidSubscribers: number;
+  appSubscribers: number;
+  views: number;
+  viewsDelta: number;
+  openRate: number;
+  openRateDiff: number;
+  posts: { title: string; slug: string; postDate: string; views: number; openRate: number; clickRate: number; reactions: number }[];
+}
+export function useSubstackStats() {
+  return useApiData<SubstackStatsData>("/api/substack-stats");
+}
+
 // GA4
 export interface GA4Data {
   daily: { date: string; visitors: number; pageviews: number; newUsers: number; avgSessionDuration: number; bounceRate: number }[];

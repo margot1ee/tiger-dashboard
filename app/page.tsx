@@ -10,7 +10,7 @@ import {
   trafficData,
   trafficSources,
 } from "@/lib/demo-data";
-import { useYouTubeData, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts } from "@/lib/hooks";
+import { useYouTubeData, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats } from "@/lib/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Globe,
@@ -100,12 +100,21 @@ export default function OverviewPage() {
   const { data: xData } = useXData();
   const { data: xJpData } = useXData("tr_japan_");
   const { data: tgPosts } = useTelegramPosts();
+  const { data: substackStats } = useSubstackStats();
   const { data: dbMetrics } = useChannelMetrics(true);
   const { comparisons, prevFromStr, prevToStr } = useComparisonMetrics(from, to);
   const { data: ga4Data } = useGA4Data(from, to);
   const { data: ga4PrevData } = useGA4Data(prevFromStr, prevToStr);
 
   const mergedMetrics = { ...channelMetrics };
+  // Substack: live subscribers + views from internal API
+  if (substackStats) {
+    mergedMetrics.substack = {
+      ...mergedMetrics.substack,
+      followers: substackStats.subscribers,
+      impressions: substackStats.views,
+    };
+  }
   // YouTube: live subscribers + total views as impressions
   if (ytData) {
     mergedMetrics.youtube = {
