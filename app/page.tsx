@@ -10,7 +10,7 @@ import {
   trafficData,
   trafficSources,
 } from "@/lib/demo-data";
-import { useYouTubeData, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data } from "@/lib/hooks";
+import { useYouTubeData, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts } from "@/lib/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Globe,
@@ -98,15 +98,49 @@ export default function OverviewPage() {
   const { data: ytData } = useYouTubeData();
   const { data: tgData } = useTelegramData();
   const { data: xData } = useXData();
+  const { data: xJpData } = useXData("tr_japan_");
+  const { data: tgPosts } = useTelegramPosts();
   const { data: dbMetrics } = useChannelMetrics(true);
   const { comparisons, prevFromStr, prevToStr } = useComparisonMetrics(from, to);
   const { data: ga4Data } = useGA4Data(from, to);
   const { data: ga4PrevData } = useGA4Data(prevFromStr, prevToStr);
 
   const mergedMetrics = { ...channelMetrics };
-  if (ytData) mergedMetrics.youtube = { ...mergedMetrics.youtube, followers: ytData.channel.subscribers };
-  if (tgData) mergedMetrics.telegram = { ...mergedMetrics.telegram, followers: tgData.channel.members };
-  if (xData) mergedMetrics.x = { ...mergedMetrics.x, followers: xData.user.followers };
+  // YouTube: live subscribers + total views as impressions
+  if (ytData) {
+    mergedMetrics.youtube = {
+      ...mergedMetrics.youtube,
+      followers: ytData.channel.subscribers,
+      impressions: ytData.channel.totalViews,
+    };
+  }
+  // Telegram: live members + post views as impressions
+  if (tgData) {
+    const tgImpressions = tgPosts?.posts?.reduce((s, p) => s + (p.views ?? 0), 0) ?? 0;
+    mergedMetrics.telegram = {
+      ...mergedMetrics.telegram,
+      followers: tgData.channel.members,
+      ...(tgImpressions > 0 ? { impressions: tgImpressions } : {}),
+    };
+  }
+  // X: live followers + tweet impressions
+  if (xData) {
+    const xImpressions = xData.tweets?.reduce((s, t) => s + (t.metrics?.impressions ?? 0), 0) ?? 0;
+    mergedMetrics.x = {
+      ...mergedMetrics.x,
+      followers: xData.user.followers,
+      ...(xImpressions > 0 ? { impressions: xImpressions } : {}),
+    };
+  }
+  // X Japan: live data
+  if (xJpData) {
+    const xJpImpressions = xJpData.tweets?.reduce((s, t) => s + (t.metrics?.impressions ?? 0), 0) ?? 0;
+    mergedMetrics.x_jp = {
+      ...mergedMetrics.x_jp,
+      followers: xJpData.user.followers,
+      ...(xJpImpressions > 0 ? { impressions: xJpImpressions } : {}),
+    };
+  }
   if (dbMetrics?.metrics) {
     for (const row of dbMetrics.metrics) {
       const key = row.channel as keyof typeof mergedMetrics;

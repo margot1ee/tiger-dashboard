@@ -117,8 +117,9 @@ export interface XData {
   };
   tweets: XTweet[];
 }
-export function useXData() {
-  return useApiData<XData>("/api/x");
+export function useXData(username?: string) {
+  const params = username ? `?username=${username}` : "";
+  return useApiData<XData>(`/api/x${params}`);
 }
 
 // Telegram Posts

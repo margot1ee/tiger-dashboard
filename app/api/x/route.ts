@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   const bearerToken = process.env.X_BEARER_TOKEN;
-  const username = "tiger_research";
+  const { searchParams } = new URL(request.url);
+  const username = searchParams.get("username") || "tiger_research";
 
   if (!bearerToken) {
     return NextResponse.json(
