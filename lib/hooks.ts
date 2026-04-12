@@ -78,6 +78,8 @@ export function useSubstackData() {
 // Substack Internal Stats (dashboard API)
 export interface SubstackStatsData {
   subscribers: number;
+  subscribersStart: number;
+  subscribersChange: number;
   paidSubscribers: number;
   appSubscribers: number;
   views: number;
@@ -85,6 +87,7 @@ export interface SubstackStatsData {
   viewsChangePercent: number;
   openRate: number;
   openRateDiff: number;
+  range: number;
   posts: { title: string; slug: string; postDate: string; views: number; openRate: number; clickRate: number; reactions: number }[];
 }
 export function useSubstackStats(rangeDays?: number) {
