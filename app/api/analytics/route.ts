@@ -42,32 +42,28 @@ export async function GET(request: Request) {
       bounceRate: Number(row.metricValues![4].value),
     })) || [];
 
-    // Traffic sources
+    // Traffic sources (source / medium)
     const sourcesReport = await analyticsData.properties.runReport({
       property: `properties/${propertyId}`,
       requestBody: {
         dateRanges: [{ startDate, endDate }],
-        dimensions: [{ name: "sessionDefaultChannelGroup" }],
+        dimensions: [{ name: "sessionSource" }, { name: "sessionMedium" }],
         metrics: [{ name: "activeUsers" }, { name: "screenPageViews" }],
         orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
-        limit: "10",
+        limit: "15",
       },
     });
 
-    const sourceColors: Record<string, string> = {
-      "Organic Search": "#22c55e",
-      "Direct": "#f97316",
-      "Social": "#3b82f6",
-      "Referral": "#8b5cf6",
-      "Email": "#ec4899",
-      "Paid Search": "#eab308",
-      "Organic Social": "#06b6d4",
-    };
+    const sourceColors = [
+      "#f97316", "#3b82f6", "#22c55e", "#8b5cf6", "#ec4899",
+      "#eab308", "#06b6d4", "#ef4444", "#14b8a6", "#f43f5e",
+      "#a855f7", "#84cc16", "#0ea5e9", "#d946ef", "#6b7280",
+    ];
 
-    const sources = sourcesReport.data.rows?.map((row) => ({
-      name: row.dimensionValues![0].value!,
+    const sources = sourcesReport.data.rows?.map((row, i) => ({
+      name: `${row.dimensionValues![0].value!} / ${row.dimensionValues![1].value!}`,
       value: Number(row.metricValues![0].value),
-      color: sourceColors[row.dimensionValues![0].value!] || "#6b7280",
+      color: sourceColors[i] || "#6b7280",
     })) || [];
 
     // Top pages

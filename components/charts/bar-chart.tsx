@@ -69,7 +69,10 @@ export function BarChart({
                 border: "1px solid hsl(var(--border))",
                 borderRadius: "8px",
                 fontSize: 12,
+                color: "#000000",
               }}
+              itemStyle={{ color: "#000000" }}
+              labelStyle={{ color: "#000000" }}
             />
             <Bar dataKey={dataKey} fill={color} radius={[4, 4, 0, 0]} />
           </RechartsBarChart>
