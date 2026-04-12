@@ -124,7 +124,11 @@ export default function OverviewPage() {
   const { data: ga4Data } = useGA4Data(from, to);
   const { data: ga4PrevData } = useGA4Data(prevFromStr, prevToStr);
 
-  const mergedMetrics = { ...channelMetrics };
+  const mergedMetrics: Record<string, {
+    name: string; followers: number; change: number; color: string;
+    impressions: number; impressionsChange: number;
+    followersDetail?: string; impressionsDetail?: string; followersRaw?: number;
+  }> = { ...channelMetrics };
   // Substack: live subscribers + period views from internal API
   if (substackStats) {
     const subChange = substackStats.subscribersChange;
@@ -184,7 +188,7 @@ export default function OverviewPage() {
   }
   if (dbMetrics?.metrics) {
     for (const row of dbMetrics.metrics) {
-      const key = row.channel as keyof typeof mergedMetrics;
+      const key = row.channel as string;
       if (mergedMetrics[key] && row.followers != null) mergedMetrics[key] = { ...mergedMetrics[key], followers: row.followers };
     }
   }
@@ -192,7 +196,7 @@ export default function OverviewPage() {
   const getChange = (channelKey: string): number | undefined => {
     const comp = comparisons.find((c) => c.channel === channelKey);
     if (comp?.changePercent != null) return comp.changePercent;
-    return mergedMetrics[channelKey as keyof typeof mergedMetrics]?.change;
+    return mergedMetrics[channelKey as string]?.change;
   };
 
   const totalFollowers = Object.values(mergedMetrics).reduce((sum, ch) => sum + ch.followers, 0);
@@ -330,12 +334,7 @@ export default function OverviewPage() {
         {/* Combined Channel Cards: Followers + Impressions */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {channelOrder.map((key) => {
-            const ch = mergedMetrics[key as keyof typeof mergedMetrics] as {
-              name: string; followers: number; change: number; color: string;
-              impressions?: number; impressionsChange?: number;
-              followersDetail?: string; impressionsDetail?: string;
-              followersRaw?: number;
-            };
+            const ch = mergedMetrics[key];
             if (!ch) return null;
             const folChange = getChange(key);
             const folPos = folChange !== undefined && folChange > 0;
