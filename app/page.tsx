@@ -10,7 +10,7 @@ import {
   trafficData,
   trafficSources,
 } from "@/lib/demo-data";
-import { useYouTubeData, useYouTubeAnalytics, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats, useChannelSheet, useSubstackSheet } from "@/lib/hooks";
+import { useYouTubeData, useYouTubeAnalytics, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats, useChannelSheet, useSubstackSheet, useSubstackSubscribers } from "@/lib/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Globe,
@@ -121,6 +121,7 @@ export default function OverviewPage() {
   const { data: ytAnalytics } = useYouTubeAnalytics(periodDays);
   const { data: channelSheet } = useChannelSheet();
   const { data: substackSheet } = useSubstackSheet(periodDays);
+  const { data: substackSubs } = useSubstackSubscribers(periodDays);
   const { data: dbMetrics } = useChannelMetrics(true);
   const { comparisons, prevFromStr, prevToStr } = useComparisonMetrics(from, to);
   const { data: ga4Data } = useGA4Data(from, to);
@@ -142,8 +143,16 @@ export default function OverviewPage() {
       impressionsDetail: `prev ${formatNumber(substackStats.prevViews)}`,
     };
   }
-  // Substack subscriber sheet: override with In/Out sheet data for gain/loss detail
-  if (substackSheet) {
+  // Substack subscribers: prefer API, fallback to sheet
+  if (substackSubs) {
+    const net = substackSubs.netChange;
+    mergedMetrics.substack = {
+      ...mergedMetrics.substack,
+      followers: substackSubs.totalSubscribers,
+      followersRaw: substackSubs.totalSubscribers,
+      followersDetail: `${net >= 0 ? "+" : ""}${net}, ↑${substackSubs.gained} ↓${substackSubs.lost}`,
+    };
+  } else if (substackSheet) {
     const net = substackSheet.netChange;
     mergedMetrics.substack = {
       ...mergedMetrics.substack,

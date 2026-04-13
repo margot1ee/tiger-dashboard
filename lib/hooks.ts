@@ -97,7 +97,7 @@ export function useSubstackStats(rangeDays?: number) {
   return useApiData<SubstackStatsData>(`/api/substack-stats${params}`);
 }
 
-// Substack Subscriber Sheet (In/Out)
+// Substack Subscriber Sheet (In/Out) — Google Sheet fallback
 export interface SubstackSheetData {
   gained: number;
   lost: number;
@@ -110,6 +110,20 @@ export interface SubstackSheetData {
 export function useSubstackSheet(days?: number) {
   const params = days ? `?days=${days}` : "";
   return useApiData<SubstackSheetData>(`/api/substack-sheet${params}`);
+}
+
+// Substack Subscribers API (direct from Substack dashboard)
+export interface SubstackSubscribersData {
+  totalSubscribers: number;
+  gained: number;
+  lost: number;
+  netChange: number;
+  days: number;
+  cutoffDate: string;
+}
+export function useSubstackSubscribers(days?: number) {
+  const params = days ? `?days=${days}` : "";
+  return useApiData<SubstackSubscribersData>(`/api/substack-subscribers${params}`);
 }
 
 // GA4
