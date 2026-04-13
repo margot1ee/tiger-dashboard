@@ -211,7 +211,7 @@ export default function OverviewPage() {
   }
   // Channel Sheet: fill in channels not yet connected via API
   if (channelSheet?.channels) {
-    const sheetOnlyChannels = ["x", "linkedin", "xiaohongshu", "instagram_id", "x_jp"];
+    const sheetOnlyChannels = ["x", "linkedin", "telegram", "xiaohongshu", "instagram_id", "x_jp"];
     for (const key of sheetOnlyChannels) {
       const sh = channelSheet.channels[key];
       if (!sh || !mergedMetrics[key]) continue;
