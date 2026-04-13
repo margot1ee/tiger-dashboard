@@ -106,6 +106,8 @@ export interface SubstackSheetData {
   totalOut: number;
   days: number;
   cutoffDate: string;
+  sources: { name: string; value: number }[];
+  countries: { name: string; value: number }[];
 }
 export function useSubstackSheet(days?: number) {
   const params = days ? `?days=${days}` : "";

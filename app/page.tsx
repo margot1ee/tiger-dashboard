@@ -339,6 +339,60 @@ export default function OverviewPage() {
         />
       </section>
 
+      {/* ── Substack Subscribers ── */}
+      {(substackSubs || substackSheet) && (
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-4 w-1 bg-[#FF6719] rounded-full" />
+            <h2 className="text-sm font-semibold uppercase tracking-wider">Substack Subscribers</h2>
+          </div>
+
+          {/* Summary cards */}
+          <div className="grid grid-cols-4 gap-3 mb-4">
+            <div className="border rounded-lg px-4 py-3">
+              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="text-2xl font-bold">{(substackSubs?.totalSubscribers ?? mergedMetrics.substack.followers).toLocaleString()}</p>
+            </div>
+            <div className="border rounded-lg px-4 py-3">
+              <p className="text-xs text-muted-foreground">Net Change ({periodDays}d)</p>
+              <p className={`text-2xl font-bold ${(substackSubs?.netChange ?? substackSheet?.netChange ?? 0) >= 0 ? "text-green-600" : "text-red-500"}`}>
+                {(substackSubs?.netChange ?? substackSheet?.netChange ?? 0) >= 0 ? "+" : ""}{substackSubs?.netChange ?? substackSheet?.netChange ?? 0}
+              </p>
+            </div>
+            <div className="border rounded-lg px-4 py-3">
+              <p className="text-xs text-muted-foreground">Gained ↑</p>
+              <p className="text-2xl font-bold text-green-600">{substackSubs?.gained ?? substackSheet?.gained ?? 0}</p>
+            </div>
+            <div className="border rounded-lg px-4 py-3">
+              <p className="text-xs text-muted-foreground">Lost ↓</p>
+              <p className="text-2xl font-bold text-red-500">{substackSubs?.lost ?? substackSheet?.lost ?? 0}</p>
+            </div>
+          </div>
+
+          {/* Source & Country charts */}
+          {substackSheet?.sources && substackSheet.sources.length > 0 && (
+            <div className="grid grid-cols-2 gap-4">
+              <BarChart
+                title="New Subscribers by Source"
+                data={substackSheet.sources.slice(0, 10)}
+                dataKey="value"
+                nameKey="name"
+                color="#FF6719"
+                height={280}
+              />
+              <BarChart
+                title="New Subscribers by Country"
+                data={substackSheet.countries?.slice(0, 10) ?? []}
+                dataKey="value"
+                nameKey="name"
+                color="#3b82f6"
+                height={280}
+              />
+            </div>
+          )}
+        </section>
+      )}
+
       {/* ── Social Performance ── */}
       <section>
         <div className="flex items-center gap-2 mb-4">

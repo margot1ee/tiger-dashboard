@@ -17,11 +17,11 @@ export async function GET(request: Request) {
     cutoff.setDate(now.getDate() - days);
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
-    // Read In and Out tabs in parallel
+    // Read In (date, email, country, last_open, opened, source) and Out (date only)
     const [inRes, outRes] = await Promise.all([
       sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
-        range: "In!A:A",
+        range: "In!A:G",
       }),
       sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
@@ -32,17 +32,30 @@ export async function GET(request: Request) {
     const inRows = inRes.data.values ?? [];
     const outRows = outRes.data.values ?? [];
 
-    // Count subscribers gained in period (skip header)
+    // Process In tab: count gained + aggregate source & country
     let gained = 0;
     let totalIn = 0;
+    const sourceCounts: Record<string, number> = {};
+    const countryCounts: Record<string, number> = {};
+
     for (let i = 1; i < inRows.length; i++) {
-      const date = inRows[i][0];
+      const row = inRows[i];
+      const date = row[0];
       if (!date) continue;
       totalIn++;
-      if (date >= cutoffStr) gained++;
+
+      if (date >= cutoffStr) {
+        gained++;
+        // Source (column index 5)
+        const source = (row[5] || "unknown").trim();
+        sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+        // Country (column index 2)
+        const country = (row[2] || "Unknown").trim() || "Unknown";
+        countryCounts[country] = (countryCounts[country] || 0) + 1;
+      }
     }
 
-    // Count subscribers lost in period (skip header)
+    // Process Out tab
     let lost = 0;
     let totalOut = 0;
     for (let i = 1; i < outRows.length; i++) {
@@ -54,6 +67,15 @@ export async function GET(request: Request) {
 
     const netChange = gained - lost;
 
+    // Sort sources and countries by count desc
+    const sources = Object.entries(sourceCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, value]) => ({ name, value }));
+
+    const countries = Object.entries(countryCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, value]) => ({ name, value }));
+
     return NextResponse.json({
       gained,
       lost,
@@ -62,6 +84,8 @@ export async function GET(request: Request) {
       totalOut,
       days,
       cutoffDate: cutoffStr,
+      sources,
+      countries,
     });
   } catch (error) {
     console.error("Substack sheet error:", error);
