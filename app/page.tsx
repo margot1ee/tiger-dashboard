@@ -348,26 +348,66 @@ export default function OverviewPage() {
           </div>
 
           {/* Summary cards */}
-          <div className="grid grid-cols-4 gap-3 mb-4">
-            <div className="border rounded-lg px-4 py-3">
-              <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-2xl font-bold">{(substackSubs?.totalSubscribers ?? mergedMetrics.substack.followers).toLocaleString()}</p>
-            </div>
-            <div className="border rounded-lg px-4 py-3">
-              <p className="text-xs text-muted-foreground">Net Change ({periodDays}d)</p>
-              <p className={`text-2xl font-bold ${(substackSubs?.netChange ?? substackSheet?.netChange ?? 0) >= 0 ? "text-green-600" : "text-red-500"}`}>
-                {(substackSubs?.netChange ?? substackSheet?.netChange ?? 0) >= 0 ? "+" : ""}{substackSubs?.netChange ?? substackSheet?.netChange ?? 0}
-              </p>
-            </div>
-            <div className="border rounded-lg px-4 py-3">
-              <p className="text-xs text-muted-foreground">Gained ↑</p>
-              <p className="text-2xl font-bold text-green-600">{substackSubs?.gained ?? substackSheet?.gained ?? 0}</p>
-            </div>
-            <div className="border rounded-lg px-4 py-3">
-              <p className="text-xs text-muted-foreground">Lost ↓</p>
-              <p className="text-2xl font-bold text-red-500">{substackSubs?.lost ?? substackSheet?.lost ?? 0}</p>
-            </div>
-          </div>
+          {(() => {
+            const net = substackSubs?.netChange ?? substackSheet?.netChange ?? 0;
+            const g = substackSubs?.gained ?? substackSheet?.gained ?? 0;
+            const l = substackSubs?.lost ?? substackSheet?.lost ?? 0;
+            const prevG = substackSheet?.prevGained;
+            const prevL = substackSheet?.prevLost;
+            const gPct = substackSheet?.gainedChangePercent;
+            const lPct = substackSheet?.lostChangePercent;
+            const nPct = substackSheet?.netChangePercent;
+            const prevNet = substackSheet?.prevNetChange;
+            return (
+              <div className="grid grid-cols-4 gap-3 mb-4">
+                <div className="border rounded-lg px-4 py-3">
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="text-2xl font-bold">{(substackSubs?.totalSubscribers ?? mergedMetrics.substack.followers).toLocaleString()}</p>
+                </div>
+                <div className="border rounded-lg px-4 py-3">
+                  <p className="text-xs text-muted-foreground">Net Change ({periodDays}d)</p>
+                  <p className={`text-2xl font-bold ${net >= 0 ? "text-green-600" : "text-red-500"}`}>
+                    {net >= 0 ? "+" : ""}{net}
+                  </p>
+                  {nPct != null && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      prev {prevNet != null ? (prevNet >= 0 ? `+${prevNet}` : prevNet) : "—"}
+                      {" · "}
+                      <span className={nPct > 0 ? "text-green-600" : nPct < 0 ? "text-red-500" : ""}>
+                        {nPct > 0 ? "+" : ""}{nPct}%
+                      </span>
+                    </p>
+                  )}
+                </div>
+                <div className="border rounded-lg px-4 py-3">
+                  <p className="text-xs text-muted-foreground">Gained ↑</p>
+                  <p className="text-2xl font-bold text-green-600">{g}</p>
+                  {gPct != null && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      prev {prevG ?? "—"}
+                      {" · "}
+                      <span className={gPct > 0 ? "text-green-600" : gPct < 0 ? "text-red-500" : ""}>
+                        {gPct > 0 ? "+" : ""}{gPct}%
+                      </span>
+                    </p>
+                  )}
+                </div>
+                <div className="border rounded-lg px-4 py-3">
+                  <p className="text-xs text-muted-foreground">Lost ↓</p>
+                  <p className="text-2xl font-bold text-red-500">{l}</p>
+                  {lPct != null && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      prev {prevL ?? "—"}
+                      {" · "}
+                      <span className={lPct < 0 ? "text-green-600" : lPct > 0 ? "text-red-500" : ""}>
+                        {lPct > 0 ? "+" : ""}{lPct}%
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Source & Country charts */}
           {substackSheet?.sources && substackSheet.sources.length > 0 && (

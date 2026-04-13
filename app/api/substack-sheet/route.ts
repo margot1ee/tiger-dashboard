@@ -17,6 +17,11 @@ export async function GET(request: Request) {
     cutoff.setDate(now.getDate() - days);
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
+    // Previous period: same duration, immediately before
+    const prevCutoff = new Date();
+    prevCutoff.setDate(now.getDate() - days * 2);
+    const prevCutoffStr = prevCutoff.toISOString().split("T")[0];
+
     // Read In (date, email, country, last_open, opened, source) and Out (date only)
     const [inRes, outRes] = await Promise.all([
       sheets.spreadsheets.values.get({
@@ -32,8 +37,9 @@ export async function GET(request: Request) {
     const inRows = inRes.data.values ?? [];
     const outRows = outRes.data.values ?? [];
 
-    // Process In tab: count gained + aggregate source & country
+    // Process In tab: current + previous period
     let gained = 0;
+    let prevGained = 0;
     let totalIn = 0;
     const sourceCounts: Record<string, number> = {};
     const countryCounts: Record<string, number> = {};
@@ -46,26 +52,43 @@ export async function GET(request: Request) {
 
       if (date >= cutoffStr) {
         gained++;
-        // Source (column index 5)
         const source = (row[5] || "unknown").trim();
         sourceCounts[source] = (sourceCounts[source] || 0) + 1;
-        // Country (column index 2)
         const country = (row[2] || "Unknown").trim() || "Unknown";
         countryCounts[country] = (countryCounts[country] || 0) + 1;
+      } else if (date >= prevCutoffStr && date < cutoffStr) {
+        prevGained++;
       }
     }
 
-    // Process Out tab
+    // Process Out tab: current + previous period
     let lost = 0;
+    let prevLost = 0;
     let totalOut = 0;
     for (let i = 1; i < outRows.length; i++) {
       const date = outRows[i][0];
       if (!date) continue;
       totalOut++;
-      if (date >= cutoffStr) lost++;
+      if (date >= cutoffStr) {
+        lost++;
+      } else if (date >= prevCutoffStr && date < cutoffStr) {
+        prevLost++;
+      }
     }
 
     const netChange = gained - lost;
+    const prevNetChange = prevGained - prevLost;
+
+    // WoW-style change percentages
+    const gainedChangePercent = prevGained > 0
+      ? Math.round(((gained - prevGained) / prevGained) * 1000) / 10
+      : null;
+    const lostChangePercent = prevLost > 0
+      ? Math.round(((lost - prevLost) / prevLost) * 1000) / 10
+      : null;
+    const netChangePercent = prevNetChange !== 0
+      ? Math.round(((netChange - prevNetChange) / Math.abs(prevNetChange)) * 1000) / 10
+      : null;
 
     // Sort sources and countries by count desc
     const sources = Object.entries(sourceCounts)
@@ -80,10 +103,17 @@ export async function GET(request: Request) {
       gained,
       lost,
       netChange,
+      prevGained,
+      prevLost,
+      prevNetChange,
+      gainedChangePercent,
+      lostChangePercent,
+      netChangePercent,
       totalIn,
       totalOut,
       days,
       cutoffDate: cutoffStr,
+      prevCutoffDate: prevCutoffStr,
       sources,
       countries,
     });

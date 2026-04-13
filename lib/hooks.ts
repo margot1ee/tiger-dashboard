@@ -102,10 +102,17 @@ export interface SubstackSheetData {
   gained: number;
   lost: number;
   netChange: number;
+  prevGained: number;
+  prevLost: number;
+  prevNetChange: number;
+  gainedChangePercent: number | null;
+  lostChangePercent: number | null;
+  netChangePercent: number | null;
   totalIn: number;
   totalOut: number;
   days: number;
   cutoffDate: string;
+  prevCutoffDate: string;
   sources: { name: string; value: number }[];
   countries: { name: string; value: number }[];
 }
