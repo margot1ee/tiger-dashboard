@@ -10,7 +10,7 @@ import {
   trafficData,
   trafficSources,
 } from "@/lib/demo-data";
-import { useYouTubeData, useYouTubeAnalytics, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats, useChannelSheet } from "@/lib/hooks";
+import { useYouTubeData, useYouTubeAnalytics, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats, useChannelSheet, useSubstackSheet } from "@/lib/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Globe,
@@ -120,6 +120,7 @@ export default function OverviewPage() {
   const { data: substackStats } = useSubstackStats(periodDays);
   const { data: ytAnalytics } = useYouTubeAnalytics(periodDays);
   const { data: channelSheet } = useChannelSheet();
+  const { data: substackSheet } = useSubstackSheet(periodDays);
   const { data: dbMetrics } = useChannelMetrics(true);
   const { comparisons, prevFromStr, prevToStr } = useComparisonMetrics(from, to);
   const { data: ga4Data } = useGA4Data(from, to);
@@ -132,19 +133,21 @@ export default function OverviewPage() {
   }> = { ...channelMetrics };
   // Substack: live subscribers + period views from internal API
   if (substackStats) {
-    const subChange = substackStats.subscribersChange;
-    const gained = substackStats.subsGained;
-    const lost = substackStats.subsLost;
     mergedMetrics.substack = {
       ...mergedMetrics.substack,
       followers: substackStats.subscribers,
       impressions: substackStats.views,
       impressionsChange: substackStats.viewsChangePercent,
       followersRaw: substackStats.subscribers,
-      followersDetail: gained > 0 || lost > 0
-        ? `${subChange >= 0 ? "+" : ""}${subChange}, ↑${gained} ↓${lost}`
-        : `${subChange >= 0 ? "+" : ""}${subChange}`,
       impressionsDetail: `prev ${formatNumber(substackStats.prevViews)}`,
+    };
+  }
+  // Substack subscriber sheet: override with In/Out sheet data for gain/loss detail
+  if (substackSheet) {
+    const net = substackSheet.netChange;
+    mergedMetrics.substack = {
+      ...mergedMetrics.substack,
+      followersDetail: `${net >= 0 ? "+" : ""}${net}, ↑${substackSheet.gained} ↓${substackSheet.lost}`,
     };
   }
   // YouTube: live subscribers + Analytics API for period views

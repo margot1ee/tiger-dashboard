@@ -9,24 +9,59 @@ export async function GET(request: Request) {
     const auth = getGoogleAuth();
     const sheets = google.sheets({ version: "v4", auth });
 
-    // First, get all sheet names
-    const meta = await sheets.spreadsheets.get({
-      spreadsheetId: SPREADSHEET_ID,
-      fields: "sheets.properties.title",
-    });
-    const sheetNames = meta.data.sheets?.map(s => s.properties?.title) ?? [];
+    const { searchParams } = new URL(request.url);
+    const days = Number(searchParams.get("days") || "7");
 
-    // Read the first sheet (or the one matching gid)
-    const targetSheet = sheetNames[0] || "Sheet1";
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${targetSheet}!A1:Z50`,
-    });
+    const now = new Date();
+    const cutoff = new Date();
+    cutoff.setDate(now.getDate() - days);
+    const cutoffStr = cutoff.toISOString().split("T")[0];
+
+    // Read In and Out tabs in parallel
+    const [inRes, outRes] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "In!A:A",
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Out!A:A",
+      }),
+    ]);
+
+    const inRows = inRes.data.values ?? [];
+    const outRows = outRes.data.values ?? [];
+
+    // Count subscribers gained in period (skip header)
+    let gained = 0;
+    let totalIn = 0;
+    for (let i = 1; i < inRows.length; i++) {
+      const date = inRows[i][0];
+      if (!date) continue;
+      totalIn++;
+      if (date >= cutoffStr) gained++;
+    }
+
+    // Count subscribers lost in period (skip header)
+    let lost = 0;
+    let totalOut = 0;
+    for (let i = 1; i < outRows.length; i++) {
+      const date = outRows[i][0];
+      if (!date) continue;
+      totalOut++;
+      if (date >= cutoffStr) lost++;
+    }
+
+    const netChange = gained - lost;
 
     return NextResponse.json({
-      sheetNames,
-      targetSheet,
-      rows: res.data.values ?? [],
+      gained,
+      lost,
+      netChange,
+      totalIn,
+      totalOut,
+      days,
+      cutoffDate: cutoffStr,
     });
   } catch (error) {
     console.error("Substack sheet error:", error);

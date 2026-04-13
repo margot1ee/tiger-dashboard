@@ -97,6 +97,21 @@ export function useSubstackStats(rangeDays?: number) {
   return useApiData<SubstackStatsData>(`/api/substack-stats${params}`);
 }
 
+// Substack Subscriber Sheet (In/Out)
+export interface SubstackSheetData {
+  gained: number;
+  lost: number;
+  netChange: number;
+  totalIn: number;
+  totalOut: number;
+  days: number;
+  cutoffDate: string;
+}
+export function useSubstackSheet(days?: number) {
+  const params = days ? `?days=${days}` : "";
+  return useApiData<SubstackSheetData>(`/api/substack-sheet${params}`);
+}
+
 // GA4
 export interface GA4Data {
   daily: { date: string; visitors: number; pageviews: number; newUsers: number; avgSessionDuration: number; bounceRate: number }[];
