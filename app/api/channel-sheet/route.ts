@@ -47,18 +47,32 @@ export async function GET() {
     // Header row has dates
     const headerRow = rows[0];
 
-    // Find the last column with ANY data across the followers rows
-    // (handles case where most recent column is partially filled)
-    const findLastFilledCol = (dateStartIdx: number) => {
-      for (let c = headerRow.length - 1; c >= dateStartIdx; c--) {
-        for (let r = 1; r < rows.length; r++) {
-          const v = rows[r][c];
-          if (v && v.trim() !== "") return c;
-        }
+    // Count filled rows per column to find the latest column that's "mostly complete"
+    // (prevents a partially-filled new week from splitting channels across two weeks).
+    const filledCountPerCol = (colIdx: number) => {
+      let n = 0;
+      for (let r = 1; r < rows.length; r++) {
+        const v = rows[r][colIdx];
+        if (v && v.trim() !== "") n++;
       }
-      return headerRow.length - 1;
+      return n;
     };
-    const lastCol = findLastFilledCol(3);
+
+    // Find the latest column whose fill-rate is >= 50% of the max seen so far.
+    // This treats a new-but-half-empty column as "in progress" and falls back to the prior week.
+    let lastCol = headerRow.length - 1;
+    let maxFilled = 0;
+    for (let c = 3; c < headerRow.length; c++) {
+      const n = filledCountPerCol(c);
+      if (n > maxFilled) maxFilled = n;
+    }
+    for (let c = headerRow.length - 1; c >= 3; c--) {
+      const n = filledCountPerCol(c);
+      if (n >= Math.max(1, Math.floor(maxFilled * 0.5))) {
+        lastCol = c;
+        break;
+      }
+    }
     const prevCol = lastCol - 1;
     const currentDate = headerRow[lastCol] || "";
     const prevDate = headerRow[prevCol] || "";
