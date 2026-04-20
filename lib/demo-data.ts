@@ -166,43 +166,43 @@ export const contentPerformance = [
 
 export const weeklyInsights = [
   {
-    type: "alert" as const,
-    title: "Substack 구독자 -47명 감소 (22,677 → 22,630)",
-    detail: "3주 연속 하락세. WoW -0.21%. 콘텐츠 주제 다양화 또는 리텐션 캠페인 검토 필요",
-  },
-  {
-    type: "growth" as const,
-    title: "LinkedIn 팔로워 +44명, 최근 10주 최대 성장",
-    detail: "1,405 → 1,449 (+3.13% WoW). 임프레션도 2,337 → 3,819 (+63.4%) 급증",
-  },
-  {
     type: "spike" as const,
-    title: "X 임프레션 6,900 → 25,622 (+271% WoW)",
-    detail: "팔로워는 거의 변동 없으나(-2명) 임프레션 급증. 바이럴 콘텐츠 또는 외부 유입 확인 필요",
-  },
-  {
-    type: "growth" as const,
-    title: "Instagram (ID) 팔로워 +148명 (1,184 → 1,332)",
-    detail: "+12.5% WoW. 전 채널 중 가장 높은 팔로워 성장률. 인도네시아 시장 성장세 지속",
-  },
-  {
-    type: "alert" as const,
-    title: "Telegram 임프레션 692 → 154 (-77.8% WoW)",
-    detail: "포스트 조회수 급감. 콘텐츠 빈도 또는 포스팅 시간대 재검토 필요",
-  },
-  {
-    type: "alert" as const,
-    title: "Instagram (ID) 조회수 8,028 → 1,063 (-86.8% WoW)",
-    detail: "팔로워는 증가하나 콘텐츠 도달률 급감. 알고리즘 변화 또는 콘텐츠 전략 점검 필요",
+    title: "🔥 LinkedIn 임프레션 49,647 (+1,200% WoW)",
+    detail: "3,819 → 49,647로 13배 폭증. 팔로워도 +42명(+2.9%) 동반 성장. 이번 주 BOK 서킷브레이커/테더/Citrea 콘텐츠가 크게 확산된 것으로 추정. LinkedIn이 이번 주 최고 성과 채널",
   },
   {
     type: "content" as const,
-    title: "Substack 임프레션 22,200 → 32,800 (+47.7% WoW)",
-    detail: "구독자는 줄었으나 임프레션 대폭 증가. 비구독자 유입 증가 → 전환 기회",
+    title: "Substack 임프레션 28,400 (-13.4% WoW)",
+    detail: "32,800 → 28,400. 포스팅 수는 4편(BOK 서킷브레이커, Citrea, Tether Drift, Web3 Hacks 각 한/영 버전)으로 전주와 유사. 조회수 감소는 발행 타이밍/주제 영향 가능성. 지난주 대비 확산 동력 약화",
+  },
+  {
+    type: "growth" as const,
+    title: "YouTube 조회수 528 → 1,563 (+196% WoW)",
+    detail: "팔로워 +48명 동반 성장 (467→515). 영상 콘텐츠 확산력 개선",
+  },
+  {
+    type: "growth" as const,
+    title: "Instagram (ID) 팔로워 +121명 (1,332 → 1,453, +9.1%)",
+    detail: "인도네시아 시장 꾸준한 성장세. 조회수도 1,063 → 4,015 (+277%) 회복",
   },
   {
     type: "alert" as const,
-    title: "YouTube 성장 둔화: 팔로워 +2명, 조회수 528 (-11.6%)",
-    detail: "직전 주 대비 성장세 크게 둔화 (465→467). 영상 업로드 빈도 또는 주제 재검토",
+    title: "X 팔로워 -164명 (9,302 → 9,138, -1.76%)",
+    detail: "이번 주 최대 팔로워 이탈. 다만 임프레션은 25,622 → 42,256 (+64.9%) 증가 → 도달은 잘 되나 팔로우 전환이 약함",
+  },
+  {
+    type: "alert" as const,
+    title: "Substack 구독자 -25명 감소 (22,630 → 22,605)",
+    detail: "지난 7일 Gained 59 ↑, Lost 66 ↓, 순감 -7명 (이번 주 발행 4편: BOK/Citrea/Tether/Web3 Hacks 한영 버전). 이탈자는 전주 -10.8% 감소로 개선 중",
+  },
+  {
+    type: "spike" as const,
+    title: "Telegram 임프레션 154 → 1,400 (+809% WoW)",
+    detail: "전주 급락 후 회복. 멤버도 +5명(+0.29%) 소폭 증가",
+  },
+  {
+    type: "content" as const,
+    title: "이번 주 LinkedIn이 최고 성과 채널",
+    detail: "총 임프레션 75K 중 LinkedIn이 49.6K(66%) 차지. X 42.3K, Substack 28.4K 순. LinkedIn 콘텐츠 확산 전략 복기 필요",
   },
 ];
