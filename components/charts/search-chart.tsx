@@ -37,20 +37,20 @@ function CustomTooltip({ active, payload, label }: any) {
         fontSize: 12,
       }}
     >
-      <p style={{ fontWeight: 600, marginBottom: 6 }}>{label}</p>
+      <p style={{ fontWeight: 600, marginBottom: 6, color: "#000000" }}>{label}</p>
       {impressions && (
-        <p style={{ color: "#8b5cf6", margin: "2px 0" }}>
-          Impressions: {Number(impressions.value).toLocaleString()}
+        <p style={{ color: "#000000", margin: "2px 0" }}>
+          <span style={{ color: "#8b5cf6" }}>●</span> Impressions: {Number(impressions.value).toLocaleString()}
         </p>
       )}
       {clicks && (
-        <p style={{ color: "#22c55e", margin: "2px 0" }}>
-          Clicks: {Number(clicks.value).toLocaleString()}
+        <p style={{ color: "#000000", margin: "2px 0" }}>
+          <span style={{ color: "#22c55e" }}>●</span> Clicks: {Number(clicks.value).toLocaleString()}
         </p>
       )}
       {ctr && (
-        <p style={{ color: "#f97316", margin: "2px 0", fontWeight: 600 }}>
-          CTR: {ctr.value}%
+        <p style={{ color: "#000000", margin: "2px 0", fontWeight: 600 }}>
+          <span style={{ color: "#f97316" }}>●</span> CTR: {ctr.value}%
         </p>
       )}
     </div>

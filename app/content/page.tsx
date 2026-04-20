@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 // Real data only - no demo data
-import { useSubstackData, useYouTubeData, useXData, useTelegramPosts } from "@/lib/hooks";
+import { useSubstackStats, useYouTubeData, useXData, useTelegramPosts } from "@/lib/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -79,28 +79,45 @@ export default function ContentPage() {
     [period, customFrom, customTo]
   );
 
-  // Get real Substack posts from RSS
-  const { data: substackData } = useSubstackData();
+  const periodDays = useMemo(() => {
+    switch (period) {
+      case "7D": return 7;
+      case "4W": return 28;
+      case "3M": return 90;
+      case "6M": return 180;
+      case "1Y": return 365;
+      case "custom":
+        if (customFrom && customTo) {
+          return Math.ceil((new Date(customTo).getTime() - new Date(customFrom).getTime()) / 86400000);
+        }
+        return 30;
+    }
+  }, [period, customFrom, customTo]);
+
+  // Real data from APIs
+  const { data: substackStats } = useSubstackStats(periodDays);
   const { data: ytData } = useYouTubeData();
   const { data: xData } = useXData();
   const { data: tgPosts } = useTelegramPosts();
 
   // Real data only
   const allContent = useMemo(() => {
-    const items: { date: string; channel: string; title: string; views: number; likes: number; comments: number; shares: number }[] = [];
+    const items: { date: string; channel: string; title: string; views: number; likes: number; comments: number; shares: number; openRate?: number; clickRate?: number }[] = [];
 
-    // Substack posts from RSS
-    if (substackData?.posts) {
-      for (const post of substackData.posts) {
-        const pubDate = new Date(post.pubDate).toISOString().split("T")[0];
+    // Substack posts with real views/engagement from Substack internal API
+    if (substackStats?.posts) {
+      for (const post of substackStats.posts) {
+        const pubDate = new Date(post.postDate).toISOString().split("T")[0];
         items.push({
           date: pubDate,
           channel: "Substack",
           title: post.title,
-          views: 0,
-          likes: 0,
+          views: post.views,
+          likes: post.reactions,
           comments: 0,
           shares: 0,
+          openRate: post.openRate,
+          clickRate: post.clickRate,
         });
       }
     }
@@ -154,7 +171,19 @@ export default function ContentPage() {
     }
 
     return items;
-  }, [substackData, ytData, xData, tgPosts]);
+  }, [substackStats, ytData, xData, tgPosts]);
+
+  // Channel-level aggregation
+  const channelStats = useMemo(() => {
+    const byChannel: Record<string, { count: number; views: number; engagement: number }> = {};
+    for (const item of allContent.filter((i) => i.date >= from && i.date <= to)) {
+      if (!byChannel[item.channel]) byChannel[item.channel] = { count: 0, views: 0, engagement: 0 };
+      byChannel[item.channel].count++;
+      byChannel[item.channel].views += item.views;
+      byChannel[item.channel].engagement += item.likes + item.comments + item.shares;
+    }
+    return byChannel;
+  }, [allContent, from, to]);
 
   // Filter by channel and date range
   const filtered = useMemo(() => {
@@ -317,6 +346,28 @@ export default function ContentPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Channel Breakdown */}
+      {Object.keys(channelStats).length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {Object.entries(channelStats)
+            .sort(([, a], [, b]) => b.count - a.count)
+            .map(([ch, s]) => (
+              <Card key={ch}>
+                <CardContent className="py-3 px-4">
+                  <Badge variant="secondary" className={channelColors[ch] || ""}>{ch}</Badge>
+                  <div className="flex items-baseline gap-2 mt-2">
+                    <span className="text-xl font-bold">{s.count}</span>
+                    <span className="text-xs text-muted-foreground">posts</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    {formatNumber(s.views)} views · {formatNumber(s.engagement)} eng
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+        </div>
+      )}
 
       {/* Sort Options */}
       <div className="flex items-center gap-2">

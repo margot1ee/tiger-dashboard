@@ -77,6 +77,8 @@ export function TrendChart({
                 borderRadius: "8px",
                 fontSize: 12,
               }}
+              itemStyle={{ color: "#000000" }}
+              labelStyle={{ color: "#000000", fontWeight: 600 }}
             />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             {lines.map((line) => (
