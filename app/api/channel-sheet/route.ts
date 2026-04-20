@@ -47,28 +47,51 @@ export async function GET() {
     // Header row has dates
     const headerRow = rows[0];
 
-    // Identify the rows containing "Followers"
-    const followerRowIndices: number[] = [];
+    // Channels that are updated only via this sheet (no real-time API fallback).
+    // Substack / YouTube / KR TG (Telegram) come from their own live APIs, so we
+    // should NOT require them to be filled in the sheet to consider a column current.
+    const sheetDrivenPlatforms = new Set([
+      "X (Twitter)",
+      "LinkedIn",
+      "Xiaohongshu",
+      "ID IG",
+      "JP X",
+    ]);
+
+    const sheetFollowerRows: number[] = [];
     for (let i = 1; i < rows.length; i++) {
-      if ((rows[i][1] || "").trim() === "Followers") followerRowIndices.push(i);
+      const platform = rows[i - 1]?.[0]?.trim() || rows[i]?.[0]?.trim();
+      void platform;
     }
 
-    const filledFollowerCount = (colIdx: number) => {
+    // Walk the rows once to collect Followers row indices per platform.
+    let cp = "";
+    const followerRowByPlatform: Record<string, number> = {};
+    for (let i = 1; i < rows.length; i++) {
+      const p = rows[i][0]?.trim();
+      const m = rows[i][1]?.trim();
+      if (p) cp = p;
+      if (m === "Followers" && cp) followerRowByPlatform[cp] = i;
+    }
+    for (const [p, r] of Object.entries(followerRowByPlatform)) {
+      if (sheetDrivenPlatforms.has(p)) sheetFollowerRows.push(r);
+    }
+
+    const filledSheetFollowerCount = (colIdx: number) => {
       let n = 0;
-      for (const r of followerRowIndices) {
+      for (const r of sheetFollowerRows) {
         const v = rows[r][colIdx];
         if (v && v.trim() !== "") n++;
       }
       return n;
     };
 
-    // Pick the latest column where at least 75% of channels have follower data.
-    // This lets a current week show up even if 1-2 late channels (e.g. X JP)
-    // haven't been filled in yet, while still avoiding a brand-new nearly-empty column.
-    const minRequired = Math.max(1, Math.ceil(followerRowIndices.length * 0.75));
+    // Pick latest column where ALL sheet-driven channels have follower data.
+    // Real-time channels (Substack/YouTube/Telegram) are ignored for this check
+    // because they'll be filled in by live APIs on the dashboard.
     let lastCol = headerRow.length - 1;
     for (let c = headerRow.length - 1; c >= 3; c--) {
-      if (filledFollowerCount(c) >= minRequired) { lastCol = c; break; }
+      if (filledSheetFollowerCount(c) >= sheetFollowerRows.length) { lastCol = c; break; }
     }
     const prevCol = lastCol - 1;
     const currentDate = headerRow[lastCol] || "";
