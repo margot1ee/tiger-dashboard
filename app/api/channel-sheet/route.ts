@@ -47,31 +47,28 @@ export async function GET() {
     // Header row has dates
     const headerRow = rows[0];
 
-    // Count filled rows per column to find the latest column that's "mostly complete"
-    // (prevents a partially-filled new week from splitting channels across two weeks).
-    const filledCountPerCol = (colIdx: number) => {
-      let n = 0;
-      for (let r = 1; r < rows.length; r++) {
+    // Identify the rows containing "Followers" — these MUST all have data
+    // for a column to be considered "complete".
+    const followerRowIndices: number[] = [];
+    for (let i = 1; i < rows.length; i++) {
+      if ((rows[i][1] || "").trim() === "Followers") followerRowIndices.push(i);
+    }
+
+    const isColumnComplete = (colIdx: number) => {
+      if (followerRowIndices.length === 0) return true;
+      for (const r of followerRowIndices) {
         const v = rows[r][colIdx];
-        if (v && v.trim() !== "") n++;
+        if (!v || v.trim() === "") return false;
       }
-      return n;
+      return true;
     };
 
-    // Find the latest column whose fill-rate is >= 50% of the max seen so far.
-    // This treats a new-but-half-empty column as "in progress" and falls back to the prior week.
+    // Walk back from the latest column to find the most recent one where
+    // every channel has a Follower value. This guarantees all channel cards
+    // show data from the same week.
     let lastCol = headerRow.length - 1;
-    let maxFilled = 0;
-    for (let c = 3; c < headerRow.length; c++) {
-      const n = filledCountPerCol(c);
-      if (n > maxFilled) maxFilled = n;
-    }
     for (let c = headerRow.length - 1; c >= 3; c--) {
-      const n = filledCountPerCol(c);
-      if (n >= Math.max(1, Math.floor(maxFilled * 0.5))) {
-        lastCol = c;
-        break;
-      }
+      if (isColumnComplete(c)) { lastCol = c; break; }
     }
     const prevCol = lastCol - 1;
     const currentDate = headerRow[lastCol] || "";
