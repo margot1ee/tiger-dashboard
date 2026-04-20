@@ -47,28 +47,28 @@ export async function GET() {
     // Header row has dates
     const headerRow = rows[0];
 
-    // Identify the rows containing "Followers" — these MUST all have data
-    // for a column to be considered "complete".
+    // Identify the rows containing "Followers"
     const followerRowIndices: number[] = [];
     for (let i = 1; i < rows.length; i++) {
       if ((rows[i][1] || "").trim() === "Followers") followerRowIndices.push(i);
     }
 
-    const isColumnComplete = (colIdx: number) => {
-      if (followerRowIndices.length === 0) return true;
+    const filledFollowerCount = (colIdx: number) => {
+      let n = 0;
       for (const r of followerRowIndices) {
         const v = rows[r][colIdx];
-        if (!v || v.trim() === "") return false;
+        if (v && v.trim() !== "") n++;
       }
-      return true;
+      return n;
     };
 
-    // Walk back from the latest column to find the most recent one where
-    // every channel has a Follower value. This guarantees all channel cards
-    // show data from the same week.
+    // Pick the latest column where at least 75% of channels have follower data.
+    // This lets a current week show up even if 1-2 late channels (e.g. X JP)
+    // haven't been filled in yet, while still avoiding a brand-new nearly-empty column.
+    const minRequired = Math.max(1, Math.ceil(followerRowIndices.length * 0.75));
     let lastCol = headerRow.length - 1;
     for (let c = headerRow.length - 1; c >= 3; c--) {
-      if (isColumnComplete(c)) { lastCol = c; break; }
+      if (filledFollowerCount(c) >= minRequired) { lastCol = c; break; }
     }
     const prevCol = lastCol - 1;
     const currentDate = headerRow[lastCol] || "";
