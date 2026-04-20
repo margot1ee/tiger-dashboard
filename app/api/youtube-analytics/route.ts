@@ -29,18 +29,22 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get("days") || "7");
-    // Use "MINE" for OAuth-authenticated channel owner
-    const channelId = "MINE";
+    // Prefer explicit Tiger Research channel ID from env; fall back to
+    // "MINE" (the OAuth-authenticated user's primary channel).
+    const channelId = process.env.YOUTUBE_CHANNEL_ID || "MINE";
 
+    // YouTube Analytics has ~1-2 day delay. End "yesterday" to match
+    // YouTube Studio's "Last 7 days" which typically excludes today's partial data.
     const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    endDate.setDate(endDate.getDate() - 1);
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - (days - 1)); // inclusive 7-day window
 
     // Previous period for comparison
     const prevEndDate = new Date(startDate);
     prevEndDate.setDate(prevEndDate.getDate() - 1);
     const prevStartDate = new Date(prevEndDate);
-    prevStartDate.setDate(prevStartDate.getDate() - days);
+    prevStartDate.setDate(prevStartDate.getDate() - (days - 1));
 
     const fmt = (d: Date) => d.toISOString().split("T")[0];
     const accessToken = await getAccessToken();
