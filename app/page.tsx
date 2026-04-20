@@ -160,6 +160,7 @@ export default function OverviewPage() {
     };
   }
   // YouTube: live subscribers + Analytics API for period views
+  // Only use ytData.channel.totalViews as a LAST resort (it's lifetime total, not period)
   if (ytData) {
     const ytNetSubs = ytAnalytics?.netSubscribers;
     const ytSubsGained = ytAnalytics?.subscribersGained;
@@ -167,8 +168,8 @@ export default function OverviewPage() {
     mergedMetrics.youtube = {
       ...mergedMetrics.youtube,
       followers: ytData.channel.subscribers,
-      impressions: ytAnalytics?.views ?? ytData.channel.totalViews,
-      impressionsChange: ytAnalytics?.viewsChangePercent ?? 0,
+      // Prefer period views from Analytics API; if unavailable, leave impressions to be set by sheet override below
+      ...(ytAnalytics?.views ? { impressions: ytAnalytics.views, impressionsChange: ytAnalytics.viewsChangePercent ?? 0 } : {}),
       ...(ytNetSubs !== undefined ? {
         followersDetail: `${ytNetSubs >= 0 ? "+" : ""}${ytNetSubs} (↑${ytSubsGained} ↓${ytSubsLost})`,
         impressionsDetail: `prev ${formatNumber(ytAnalytics?.prevViews ?? 0)}`,
@@ -211,20 +212,29 @@ export default function OverviewPage() {
   }
   // Channel Sheet: fill in channels not yet connected via API
   if (channelSheet?.channels) {
-    const sheetOnlyChannels = ["x", "linkedin", "telegram", "xiaohongshu", "instagram_id", "x_jp"];
+    // Channels where sheet data is the source of truth for period impressions.
+    // YouTube included as fallback when Analytics API fails (500); Substack keeps its own stats.
+    const sheetOnlyChannels = ["x", "linkedin", "telegram", "xiaohongshu", "instagram_id", "x_jp", "youtube"];
     for (const key of sheetOnlyChannels) {
       const sh = channelSheet.channels[key];
       if (!sh || !mergedMetrics[key]) continue;
       const current = mergedMetrics[key];
+      // Preserve existing rich impressions/followers details from live APIs (e.g. YouTube Analytics)
+      const hasLiveImpressions = (current.impressions ?? 0) > 0 && current.impressionsDetail;
+      const hasLiveFollowerDetail = !!current.followersDetail && current.followersDetail.includes("↑");
       mergedMetrics[key] = {
         ...current,
         followers: sh.followers || current.followers,
         change: sh.followersChangePercent || current.change,
-        impressions: sh.impressions,
-        impressionsChange: sh.impressionsChangePercent || current.impressionsChange,
+        impressions: hasLiveImpressions ? current.impressions : sh.impressions,
+        impressionsChange: hasLiveImpressions ? current.impressionsChange : (sh.impressionsChangePercent || current.impressionsChange),
         followersRaw: sh.followers,
-        followersDetail: sh.followersChange !== 0 ? `${sh.followersChange >= 0 ? "+" : ""}${sh.followersChange}` : undefined,
-        impressionsDetail: sh.prevImpressions > 0 ? `prev ${formatNumber(sh.prevImpressions)}` : undefined,
+        followersDetail: hasLiveFollowerDetail
+          ? current.followersDetail
+          : (sh.followersChange !== 0 ? `${sh.followersChange >= 0 ? "+" : ""}${sh.followersChange}` : undefined),
+        impressionsDetail: hasLiveImpressions
+          ? current.impressionsDetail
+          : (sh.prevImpressions > 0 ? `prev ${formatNumber(sh.prevImpressions)}` : undefined),
       };
     }
   }
