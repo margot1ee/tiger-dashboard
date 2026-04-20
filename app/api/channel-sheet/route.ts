@@ -44,9 +44,21 @@ export async function GET() {
       return NextResponse.json({ error: "No data" }, { status: 404 });
     }
 
-    // Header row has dates - find last two date columns
+    // Header row has dates
     const headerRow = rows[0];
-    const lastCol = headerRow.length - 1;
+
+    // Find the last column with ANY data across the followers rows
+    // (handles case where most recent column is partially filled)
+    const findLastFilledCol = (dateStartIdx: number) => {
+      for (let c = headerRow.length - 1; c >= dateStartIdx; c--) {
+        for (let r = 1; r < rows.length; r++) {
+          const v = rows[r][c];
+          if (v && v.trim() !== "") return c;
+        }
+      }
+      return headerRow.length - 1;
+    };
+    const lastCol = findLastFilledCol(3);
     const prevCol = lastCol - 1;
     const currentDate = headerRow[lastCol] || "";
     const prevDate = headerRow[prevCol] || "";
@@ -84,8 +96,16 @@ export async function GET() {
         };
       }
 
-      const currentVal = parseNumber(row[lastCol]);
-      const prevVal = parseNumber(row[prevCol]);
+      // Per-row: find the last column that has data for THIS row (channel),
+      // so channels with unfilled latest columns still show their most recent value.
+      let rowLastCol = lastCol;
+      while (rowLastCol >= 3 && (!row[rowLastCol] || row[rowLastCol].trim() === "")) {
+        rowLastCol--;
+      }
+      const rowPrevCol = rowLastCol - 1;
+
+      const currentVal = parseNumber(row[rowLastCol]);
+      const prevVal = parseNumber(row[rowPrevCol]);
       const changePercent = parseNumber(wowGrowth);
 
       if (metricKey === "followers") {
