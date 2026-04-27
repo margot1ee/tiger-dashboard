@@ -18,8 +18,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const path = searchParams.get("path") || "/published?offset=0&limit=10";
+    const fullUrl = searchParams.get("url");
     const headers = getHeaders();
-    const url = `${BASE_URL}${path.startsWith("/") ? path : "/" + path}`;
+    const url = fullUrl || `${BASE_URL}${path.startsWith("/") ? path : "/" + path}`;
 
     const res = await fetch(url, { headers, cache: "no-store" });
     const text = await res.text();
