@@ -183,7 +183,14 @@ export default function OverviewPage() {
     mergedMetrics.telegram = {
       ...mergedMetrics.telegram,
       followers: tgData.channel.members,
-      ...(tgImpressions > 0 ? { impressions: tgImpressions, impressionsChange: 0 } : {}),
+      ...(tgImpressions > 0
+        ? {
+            impressions: tgImpressions,
+            impressionsChange: 0,
+            // Set impressionsDetail so sheet override won't overwrite our live data
+            impressionsDetail: `${filteredTgPosts.length} posts`,
+          }
+        : {}),
     };
   }
   // X: live followers + tweet impressions
@@ -212,9 +219,10 @@ export default function OverviewPage() {
   }
   // Channel Sheet: fill in channels not yet connected via API
   if (channelSheet?.channels) {
-    // Channels where sheet data is the source of truth for period impressions.
-    // YouTube included as fallback when Analytics API fails (500); Substack keeps its own stats.
-    const sheetOnlyChannels = ["x", "linkedin", "telegram", "xiaohongshu", "instagram_id", "x_jp", "youtube"];
+    // Sheet is the source of truth ONLY for channels without a live API.
+    // Substack / YouTube / Telegram have their own real-time integrations
+    // and should never be overwritten by stale sheet values.
+    const sheetOnlyChannels = ["x", "linkedin", "xiaohongshu", "instagram_id", "x_jp"];
     for (const key of sheetOnlyChannels) {
       const sh = channelSheet.channels[key];
       if (!sh || !mergedMetrics[key]) continue;
