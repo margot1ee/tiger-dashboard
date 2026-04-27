@@ -42,8 +42,11 @@ export async function GET(request: Request) {
       startDate = new Date(fromParam);
       endDate = new Date(toParam);
     } else {
-      // YouTube Studio's "Last N days" / "This week" view typically includes today.
+      // YouTube Analytics API has a 2-day delay for finalized data. End the
+      // window 2 days before today so every day in the result has complete
+      // data — this matches the totals YouTube Studio shows for the same range.
       endDate = new Date();
+      endDate.setDate(endDate.getDate() - 2);
       startDate = new Date(endDate);
       startDate.setDate(startDate.getDate() - (days - 1));
     }
