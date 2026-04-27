@@ -459,25 +459,45 @@ export default function OverviewPage() {
         </div>
 
         {/* Total Followers & Impressions */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="flex items-center gap-3 border rounded-lg px-4 py-2.5">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Total Followers</span>
-            <span className="text-xl font-bold">{formatNumber(totalFollowers)}</span>
-          </div>
-          <div className="flex items-center gap-3 border rounded-lg px-4 py-2.5">
-            <Eye className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Total Impressions</span>
-            <span className="text-xl font-bold">{formatNumber(totalImpressions)}</span>
-            {totalImpressionsWoW !== undefined && (
-              <span className={`text-xs font-semibold flex items-center gap-0.5 ${totalImpressionsWoW > 0 ? "text-green-600" : totalImpressionsWoW < 0 ? "text-red-500" : "text-muted-foreground"}`}>
-                {totalImpressionsWoW > 0 && <TrendingUp className="h-3 w-3" />}
-                {totalImpressionsWoW < 0 && <TrendingDown className="h-3 w-3" />}
-                {totalImpressionsWoW > 0 ? "+" : ""}{totalImpressionsWoW}%
-              </span>
-            )}
-          </div>
-        </div>
+        {(() => {
+          // Aggregate previous-period totals for WoW comparison
+          const prevTotalFollowers = Object.values(mergedMetrics).reduce((sum, ch) => {
+            const cur = ch.followersRaw ?? ch.followers;
+            const pct = ch.change ?? 0;
+            // Reverse-engineer prev = cur / (1 + pct/100)
+            const prev = pct !== 0 ? cur / (1 + pct / 100) : cur;
+            return sum + prev;
+          }, 0);
+          const totalFollowersWoW = prevTotalFollowers > 0
+            ? Math.round(((totalFollowers - prevTotalFollowers) / prevTotalFollowers) * 1000) / 10
+            : 0;
+          return (
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="flex items-center gap-3 border rounded-lg px-4 py-2.5">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Total Followers</span>
+                <span className="text-xl font-bold">{totalFollowers.toLocaleString()}</span>
+                {totalFollowersWoW !== 0 && (
+                  <span className={`text-xs font-semibold flex items-center gap-0.5 ${totalFollowersWoW > 0 ? "text-green-600" : "text-red-500"}`}>
+                    {totalFollowersWoW > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    {totalFollowersWoW > 0 ? "+" : ""}{totalFollowersWoW}%
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 border rounded-lg px-4 py-2.5">
+                <Eye className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Total Impressions</span>
+                <span className="text-xl font-bold">{totalImpressions.toLocaleString()}</span>
+                {totalImpressionsWoW !== undefined && totalImpressionsWoW !== 0 && (
+                  <span className={`text-xs font-semibold flex items-center gap-0.5 ${totalImpressionsWoW > 0 ? "text-green-600" : "text-red-500"}`}>
+                    {totalImpressionsWoW > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                    {totalImpressionsWoW > 0 ? "+" : ""}{totalImpressionsWoW}%
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Combined Channel Cards: Followers + Impressions */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -517,7 +537,7 @@ export default function OverviewPage() {
                     )}
                   </div>
                   <div className="flex items-baseline gap-1.5 mt-0.5">
-                    <p className="text-xl font-bold tracking-tight">{ch.followersRaw ? ch.followersRaw.toLocaleString() : formatNumber(ch.followers)}</p>
+                    <p className="text-xl font-bold tracking-tight">{(ch.followersRaw ?? ch.followers).toLocaleString()}</p>
                     {ch.followersDetail && (
                       <span className="text-[10px] text-muted-foreground">({ch.followersDetail})</span>
                     )}
