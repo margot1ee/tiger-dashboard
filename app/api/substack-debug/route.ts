@@ -31,7 +31,8 @@ export async function GET(request: Request) {
       status: res.status,
       contentType: res.headers.get("content-type"),
       // Trim to keep response small
-      bodyPreview: text.slice(0, 4000),
+      bodyLength: text.length,
+      bodyPreview: text.slice(0, 50000),
       keys: parsed && typeof parsed === "object" ? Object.keys(parsed as Record<string, unknown>) : null,
     });
   } catch (e) {
