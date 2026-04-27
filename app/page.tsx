@@ -460,38 +460,52 @@ export default function OverviewPage() {
 
         {/* Total Followers & Impressions */}
         {(() => {
-          // Aggregate previous-period totals for WoW comparison
-          const prevTotalFollowers = Object.values(mergedMetrics).reduce((sum, ch) => {
-            const cur = ch.followersRaw ?? ch.followers;
-            const pct = ch.change ?? 0;
-            // Reverse-engineer prev = cur / (1 + pct/100)
-            const prev = pct !== 0 ? cur / (1 + pct / 100) : cur;
-            return sum + prev;
-          }, 0);
-          const totalFollowersWoW = prevTotalFollowers > 0
+          // Use channelSheet's prevFollowers/prevImpressions when available — that's
+          // the only reliable per-channel "previous period" snapshot we have.
+          let prevTotalFollowers = 0;
+          let prevTotalImpressions = 0;
+          if (channelSheet?.channels) {
+            for (const v of Object.values(channelSheet.channels)) {
+              prevTotalFollowers += v.prevFollowers ?? 0;
+              prevTotalImpressions += v.prevImpressions ?? 0;
+            }
+          }
+          const followersWoW = prevTotalFollowers > 0
             ? Math.round(((totalFollowers - prevTotalFollowers) / prevTotalFollowers) * 1000) / 10
-            : 0;
+            : null;
+          const impressionsWoW = prevTotalImpressions > 0
+            ? Math.round(((totalImpressions - prevTotalImpressions) / prevTotalImpressions) * 1000) / 10
+            : null;
+          const followersDelta = totalFollowers - prevTotalFollowers;
+
           return (
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="flex items-center gap-3 border rounded-lg px-4 py-2.5">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Total Followers</span>
-                <span className="text-xl font-bold">{totalFollowers.toLocaleString()}</span>
-                {totalFollowersWoW !== 0 && (
-                  <span className={`text-xs font-semibold flex items-center gap-0.5 ${totalFollowersWoW > 0 ? "text-green-600" : "text-red-500"}`}>
-                    {totalFollowersWoW > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                    {totalFollowersWoW > 0 ? "+" : ""}{totalFollowersWoW}%
+              <div className="flex items-center justify-between border rounded-lg px-4 py-2.5">
+                <div className="flex items-center gap-3">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Total Followers</span>
+                  <span className="text-xl font-bold">{totalFollowers.toLocaleString()}</span>
+                </div>
+                {followersWoW != null && (
+                  <span className={`text-xs font-semibold flex items-center gap-0.5 ${followersWoW > 0 ? "text-green-600" : followersWoW < 0 ? "text-red-500" : "text-muted-foreground"}`}>
+                    {followersWoW > 0 && <TrendingUp className="h-3 w-3" />}
+                    {followersWoW < 0 && <TrendingDown className="h-3 w-3" />}
+                    {followersDelta >= 0 ? "+" : ""}{followersDelta.toLocaleString()}
+                    <span className="ml-1 opacity-80">({followersWoW > 0 ? "+" : ""}{followersWoW}%)</span>
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-3 border rounded-lg px-4 py-2.5">
-                <Eye className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Total Impressions</span>
-                <span className="text-xl font-bold">{totalImpressions.toLocaleString()}</span>
-                {totalImpressionsWoW !== undefined && totalImpressionsWoW !== 0 && (
-                  <span className={`text-xs font-semibold flex items-center gap-0.5 ${totalImpressionsWoW > 0 ? "text-green-600" : "text-red-500"}`}>
-                    {totalImpressionsWoW > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                    {totalImpressionsWoW > 0 ? "+" : ""}{totalImpressionsWoW}%
+              <div className="flex items-center justify-between border rounded-lg px-4 py-2.5">
+                <div className="flex items-center gap-3">
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Total Impressions</span>
+                  <span className="text-xl font-bold">{totalImpressions.toLocaleString()}</span>
+                </div>
+                {impressionsWoW != null && (
+                  <span className={`text-xs font-semibold flex items-center gap-0.5 ${impressionsWoW > 0 ? "text-green-600" : impressionsWoW < 0 ? "text-red-500" : "text-muted-foreground"}`}>
+                    {impressionsWoW > 0 && <TrendingUp className="h-3 w-3" />}
+                    {impressionsWoW < 0 && <TrendingDown className="h-3 w-3" />}
+                    {impressionsWoW > 0 ? "+" : ""}{impressionsWoW}%
                   </span>
                 )}
               </div>
