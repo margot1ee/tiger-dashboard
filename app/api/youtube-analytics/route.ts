@@ -29,9 +29,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get("days") || "7");
-    // Prefer explicit Tiger Research channel ID from env; fall back to
-    // "MINE" (the OAuth-authenticated user's primary channel).
-    const channelId = process.env.YOUTUBE_CHANNEL_ID || "MINE";
+    // Always use Tiger Research's channel ID explicitly so we don't accidentally
+    // hit the OAuth user's personal Brand Account primary channel.
+    const channelId = process.env.YOUTUBE_CHANNEL_ID || "UCJzkVKa9LpI_95bdgUpLTaQ";
 
     // YouTube Studio's "Last N days" / "This week" view typically includes today.
     // Use a rolling N-day window ending today (inclusive) to match Studio.
@@ -97,6 +97,7 @@ export async function GET(request: Request) {
       watchMinutes: Math.round(watchMinutes),
       days,
       period: `${fmt(startDate)} ~ ${fmt(endDate)}`,
+      channelIdUsed: channelId,
     });
   } catch (e) {
     console.error("YouTube Analytics error:", e);
