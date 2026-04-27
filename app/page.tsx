@@ -140,7 +140,7 @@ export default function OverviewPage() {
       impressions: substackStats.views,
       impressionsChange: substackStats.viewsChangePercent,
       followersRaw: substackStats.subscribers,
-      impressionsDetail: `prev ${formatNumber(substackStats.prevViews)}`,
+      impressionsDetail: `prev ${substackStats.prevViews.toLocaleString()}`,
     };
   }
   // Substack subscribers: prefer API, fallback to sheet
@@ -172,7 +172,7 @@ export default function OverviewPage() {
       ...(ytAnalytics?.views ? { impressions: ytAnalytics.views, impressionsChange: ytAnalytics.viewsChangePercent ?? 0 } : {}),
       ...(ytNetSubs !== undefined ? {
         followersDetail: `${ytNetSubs >= 0 ? "+" : ""}${ytNetSubs} (↑${ytSubsGained} ↓${ytSubsLost})`,
-        impressionsDetail: `prev ${formatNumber(ytAnalytics?.prevViews ?? 0)}`,
+        impressionsDetail: `prev ${(ytAnalytics?.prevViews ?? 0).toLocaleString()}`,
       } : {}),
     };
   }
@@ -242,7 +242,7 @@ export default function OverviewPage() {
           : (sh.followersChange !== 0 ? `${sh.followersChange >= 0 ? "+" : ""}${sh.followersChange}` : undefined),
         impressionsDetail: hasLiveImpressions
           ? current.impressionsDetail
-          : (sh.prevImpressions > 0 ? `prev ${formatNumber(sh.prevImpressions)}` : undefined),
+          : (sh.prevImpressions > 0 ? `prev ${sh.prevImpressions.toLocaleString()}` : undefined),
       };
     }
   }
@@ -341,8 +341,8 @@ export default function OverviewPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wider">Website Traffic</h2>
         </div>
         <div className="grid grid-cols-3 gap-4 mb-4">
-          <MetricCard title="Visitors" value={formatNumber(ga4Visitors)} change={visitorsChange} changeLabel={periodLabel} icon={<Eye className="h-4 w-4" />} />
-          <MetricCard title="Pageviews" value={formatNumber(ga4Pageviews)} change={pageviewsChange} changeLabel={periodLabel} icon={<Globe className="h-4 w-4" />} />
+          <MetricCard title="Visitors" value={ga4Visitors.toLocaleString()} change={visitorsChange} changeLabel={periodLabel} icon={<Eye className="h-4 w-4" />} />
+          <MetricCard title="Pageviews" value={ga4Pageviews.toLocaleString()} change={pageviewsChange} changeLabel={periodLabel} icon={<Globe className="h-4 w-4" />} />
           <MetricCard title="Avg. Session" value={avgSessionStr} change={sessionChange} changeLabel={periodLabel} icon={<Clock className="h-4 w-4" />} />
         </div>
 
@@ -575,7 +575,7 @@ export default function OverviewPage() {
                     )}
                   </div>
                   <div className="flex items-baseline gap-1.5 mt-0.5">
-                    <p className="text-xl font-bold tracking-tight">{imp > 0 ? formatNumber(imp) : "-"}</p>
+                    <p className="text-xl font-bold tracking-tight">{imp > 0 ? imp.toLocaleString() : "-"}</p>
                     {imp > 0 && ch.impressionsDetail && (
                       <span className="text-[10px] text-muted-foreground">({ch.impressionsDetail})</span>
                     )}
