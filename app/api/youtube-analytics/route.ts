@@ -33,12 +33,11 @@ export async function GET(request: Request) {
     // "MINE" (the OAuth-authenticated user's primary channel).
     const channelId = process.env.YOUTUBE_CHANNEL_ID || "MINE";
 
-    // YouTube Analytics has ~1-2 day delay. End "yesterday" to match
-    // YouTube Studio's "Last 7 days" which typically excludes today's partial data.
+    // YouTube Studio's "Last N days" / "This week" view typically includes today.
+    // Use a rolling N-day window ending today (inclusive) to match Studio.
     const endDate = new Date();
-    endDate.setDate(endDate.getDate() - 1);
     const startDate = new Date(endDate);
-    startDate.setDate(startDate.getDate() - (days - 1)); // inclusive 7-day window
+    startDate.setDate(startDate.getDate() - (days - 1)); // inclusive N-day window
 
     // Previous period for comparison
     const prevEndDate = new Date(startDate);
