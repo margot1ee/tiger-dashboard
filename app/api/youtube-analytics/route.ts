@@ -29,21 +29,31 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get("days") || "7");
+    const fromParam = searchParams.get("from");
+    const toParam = searchParams.get("to");
     // Always use Tiger Research's channel ID explicitly so we don't accidentally
     // hit the OAuth user's personal Brand Account primary channel.
     const channelId = process.env.YOUTUBE_CHANNEL_ID || "UCJzkVKa9LpI_95bdgUpLTaQ";
 
-    // YouTube Studio's "Last N days" / "This week" view typically includes today.
-    // Use a rolling N-day window ending today (inclusive) to match Studio.
-    const endDate = new Date();
-    const startDate = new Date(endDate);
-    startDate.setDate(startDate.getDate() - (days - 1)); // inclusive N-day window
+    // Allow explicit date range override via ?from=YYYY-MM-DD&to=YYYY-MM-DD
+    let endDate: Date;
+    let startDate: Date;
+    if (fromParam && toParam) {
+      startDate = new Date(fromParam);
+      endDate = new Date(toParam);
+    } else {
+      // YouTube Studio's "Last N days" / "This week" view typically includes today.
+      endDate = new Date();
+      startDate = new Date(endDate);
+      startDate.setDate(startDate.getDate() - (days - 1));
+    }
 
     // Previous period for comparison
     const prevEndDate = new Date(startDate);
     prevEndDate.setDate(prevEndDate.getDate() - 1);
     const prevStartDate = new Date(prevEndDate);
-    prevStartDate.setDate(prevStartDate.getDate() - (days - 1));
+    const periodLength = Math.ceil((endDate.getTime() - startDate.getTime()) / 86400000);
+    prevStartDate.setDate(prevStartDate.getDate() - periodLength);
 
     const fmt = (d: Date) => d.toISOString().split("T")[0];
     const accessToken = await getAccessToken();
