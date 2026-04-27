@@ -101,7 +101,14 @@ export async function GET(request: Request) {
       cutoffDate.setDate(cutoffDate.getDate() - rangeDays);
       const cutoffStr = cutoffDate.toISOString();
 
-      const allPosts: RawPost[] = postsData.posts || [];
+      // Substack's published endpoint may return posts under different keys
+      // depending on cookie scope. Try common shapes.
+      const allPosts: RawPost[] =
+        postsData.posts ||
+        postsData.publishedPosts ||
+        postsData.results ||
+        (Array.isArray(postsData) ? postsData : []) ||
+        [];
 
       // Filter posts within the selected period for subscriber gain/loss
       for (const p of allPosts) {
@@ -111,7 +118,7 @@ export async function GET(request: Request) {
         }
       }
 
-      posts = allPosts.slice(0, 10).map((p: RawPost) => ({
+      posts = allPosts.slice(0, 50).map((p: RawPost) => ({
         title: p.title,
         slug: p.slug,
         postDate: p.post_date,
@@ -121,6 +128,48 @@ export async function GET(request: Request) {
           Math.round((p.stats?.click_through_rate ?? 0) * 10000) / 100,
         reactions: p.reaction_count ?? 0,
       }));
+    }
+
+    // Fallback: if internal published endpoint returned nothing, use the
+    // public RSS feed so at least post titles/dates show up in the dashboard.
+    if (posts.length === 0) {
+      try {
+        const rssRes = await fetch("https://reports.tiger-research.com/feed", {
+          next: { revalidate: 3600 },
+        });
+        if (rssRes.ok) {
+          const xml = await rssRes.text();
+          const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+          const titleRegex = /<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>|<title>([\s\S]*?)<\/title>/;
+          const linkRegex = /<link>([\s\S]*?)<\/link>/;
+          const dateRegex = /<pubDate>([\s\S]*?)<\/pubDate>/;
+          const items: { title: string; postDate: string; slug: string }[] = [];
+          let m;
+          while ((m = itemRegex.exec(xml)) !== null && items.length < 50) {
+            const block = m[1];
+            const t = titleRegex.exec(block);
+            const l = linkRegex.exec(block);
+            const d = dateRegex.exec(block);
+            if (!t) continue;
+            const title = (t[1] || t[2] || "").trim();
+            const link = (l?.[1] || "").trim();
+            const slug = link.split("/").pop() || link;
+            const dateStr = d?.[1] ? new Date(d[1]).toISOString() : "";
+            items.push({ title, postDate: dateStr, slug });
+          }
+          posts = items.map((it) => ({
+            title: it.title,
+            slug: it.slug,
+            postDate: it.postDate,
+            views: 0,
+            openRate: 0,
+            clickRate: 0,
+            reactions: 0,
+          }));
+        }
+      } catch (e) {
+        console.error("Substack RSS fallback failed:", e);
+      }
     }
 
     return NextResponse.json({
