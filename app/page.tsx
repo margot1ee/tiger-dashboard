@@ -470,15 +470,42 @@ export default function OverviewPage() {
 
         {/* Total Followers & Impressions */}
         {(() => {
-          // Use channelSheet's prevFollowers/prevImpressions when available — that's
-          // the only reliable per-channel "previous period" snapshot we have.
+          // Build prev totals using each channel's own most accurate prev snapshot:
+          //   - Live API channels (Substack/YouTube/Telegram): use the API's
+          //     own period-start value so WoW reflects real recent change
+          //   - Sheet channels: use channelSheet.prevFollowers (sheet's prev column)
+          const sheetDriven = new Set(["x", "linkedin", "xiaohongshu", "instagram_id", "x_jp"]);
           let prevTotalFollowers = 0;
           let prevTotalImpressions = 0;
+          // Sheet-driven channels
           if (channelSheet?.channels) {
-            for (const v of Object.values(channelSheet.channels)) {
+            for (const [k, v] of Object.entries(channelSheet.channels)) {
+              if (!sheetDriven.has(k)) continue;
               prevTotalFollowers += v.prevFollowers ?? 0;
               prevTotalImpressions += v.prevImpressions ?? 0;
             }
+          }
+          // Live: Substack — substackStats.subscribersStart is the value at start of period
+          if (substackStats?.subscribersStart) {
+            prevTotalFollowers += substackStats.subscribersStart;
+            prevTotalImpressions += substackStats.prevViews ?? 0;
+          }
+          // Live: YouTube — prev subs = current - net change over period
+          if (ytData && ytAnalytics) {
+            prevTotalFollowers += Math.max(0, ytData.channel.subscribers - (ytAnalytics.netSubscribers ?? 0));
+            prevTotalImpressions += ytAnalytics.prevViews ?? 0;
+          } else if (ytData) {
+            // No analytics: assume followers unchanged so WoW only reflects other channels
+            prevTotalFollowers += ytData.channel.subscribers;
+          }
+          // Live: Telegram — no historical member API, assume unchanged
+          // (we can't compute member delta without a prior snapshot)
+          if (tgData) {
+            prevTotalFollowers += tgData.channel.members;
+            // Impressions: use prev-period post views computed earlier
+            const prevTgPosts = tgPosts?.posts?.filter((p) => p.date >= prevFromStr && p.date <= prevToStr) ?? [];
+            const tgPrevImp = prevTgPosts.reduce((s, p) => s + (p.views ?? 0), 0);
+            prevTotalImpressions += tgPrevImp;
           }
           const followersWoW = prevTotalFollowers > 0
             ? Math.round(((totalFollowers - prevTotalFollowers) / prevTotalFollowers) * 1000) / 10
