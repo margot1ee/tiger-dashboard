@@ -244,6 +244,22 @@ export function useChannelMetricsRange(from: string, to: string) {
   );
 }
 
+// Get the most recent snapshot per channel ON OR BEFORE the given date.
+// Use this to get "last week's total followers" for WoW comparison.
+export function useSnapshotOnOrBefore(beforeDate: string) {
+  const { data, loading } = useApiData<ChannelMetricsResponse>(
+    `/api/metrics?from=2020-01-01&to=${beforeDate}`
+  );
+  // The API returns rows sorted by date desc; first per channel is the latest <= beforeDate
+  const latestPerChannel: Record<string, ChannelMetric> = {};
+  if (data?.metrics) {
+    for (const m of data.metrics) {
+      if (!latestPerChannel[m.channel]) latestPerChannel[m.channel] = m;
+    }
+  }
+  return { snapshots: latestPerChannel, loading };
+}
+
 // Channel Sheet (Marketing Performance spreadsheet)
 export interface ChannelSheetData {
   channels: Record<string, {

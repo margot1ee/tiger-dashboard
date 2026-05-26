@@ -10,7 +10,7 @@ import {
   trafficData,
   trafficSources,
 } from "@/lib/demo-data";
-import { useYouTubeData, useYouTubeAnalytics, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats, useChannelSheet, useSubstackSheet, useSubstackSubscribers } from "@/lib/hooks";
+import { useYouTubeData, useYouTubeAnalytics, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats, useChannelSheet, useSubstackSheet, useSubstackSubscribers, useSnapshotOnOrBefore } from "@/lib/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Globe,
@@ -124,6 +124,8 @@ export default function OverviewPage() {
   const { data: substackSubs } = useSubstackSubscribers(periodDays);
   const { data: dbMetrics } = useChannelMetrics(true);
   const { comparisons, prevFromStr, prevToStr } = useComparisonMetrics(from, to);
+  // Snapshot at start of period (e.g., a week ago) — most accurate WoW reference
+  const { snapshots: prevSnapshots } = useSnapshotOnOrBefore(from);
   const { data: ga4Data } = useGA4Data(from, to);
   const { data: ga4PrevData } = useGA4Data(prevFromStr, prevToStr);
 
@@ -470,42 +472,54 @@ export default function OverviewPage() {
 
         {/* Total Followers & Impressions */}
         {(() => {
-          // Build prev totals using each channel's own most accurate prev snapshot:
-          //   - Live API channels (Substack/YouTube/Telegram): use the API's
-          //     own period-start value so WoW reflects real recent change
-          //   - Sheet channels: use channelSheet.prevFollowers (sheet's prev column)
+          // Build prev totals. Snapshot table is the ground truth when available
+          // (auto-captured by /api/snapshot/run weekly). Fall back to per-API
+          // estimates only when no snapshot exists for that channel yet.
           const sheetDriven = new Set(["x", "linkedin", "xiaohongshu", "instagram_id", "x_jp"]);
           let prevTotalFollowers = 0;
           let prevTotalImpressions = 0;
-          // Sheet-driven channels
-          if (channelSheet?.channels) {
-            for (const [k, v] of Object.entries(channelSheet.channels)) {
-              if (!sheetDriven.has(k)) continue;
-              prevTotalFollowers += v.prevFollowers ?? 0;
-              prevTotalImpressions += v.prevImpressions ?? 0;
-            }
-          }
-          // Live: Substack — substackStats.subscribersStart is the value at start of period
-          if (substackStats?.subscribersStart) {
+
+          const snapshotFor = (key: string) => prevSnapshots?.[key];
+          // Substack
+          const ssSnap = snapshotFor("substack");
+          if (ssSnap?.followers != null) {
+            prevTotalFollowers += ssSnap.followers;
+            prevTotalImpressions += ssSnap.impressions ?? substackStats?.prevViews ?? 0;
+          } else if (substackStats?.subscribersStart) {
             prevTotalFollowers += substackStats.subscribersStart;
             prevTotalImpressions += substackStats.prevViews ?? 0;
           }
-          // Live: YouTube — prev subs = current - net change over period
-          if (ytData && ytAnalytics) {
+          // YouTube
+          const ytSnap = snapshotFor("youtube");
+          if (ytSnap?.followers != null) {
+            prevTotalFollowers += ytSnap.followers;
+            prevTotalImpressions += ytSnap.impressions ?? ytAnalytics?.prevViews ?? 0;
+          } else if (ytData && ytAnalytics) {
             prevTotalFollowers += Math.max(0, ytData.channel.subscribers - (ytAnalytics.netSubscribers ?? 0));
             prevTotalImpressions += ytAnalytics.prevViews ?? 0;
           } else if (ytData) {
-            // No analytics: assume followers unchanged so WoW only reflects other channels
             prevTotalFollowers += ytData.channel.subscribers;
           }
-          // Live: Telegram — no historical member API, assume unchanged
-          // (we can't compute member delta without a prior snapshot)
-          if (tgData) {
+          // Telegram
+          const tgSnap = snapshotFor("telegram");
+          if (tgSnap?.followers != null) {
+            prevTotalFollowers += tgSnap.followers;
+            prevTotalImpressions += tgSnap.impressions ?? 0;
+          } else if (tgData) {
             prevTotalFollowers += tgData.channel.members;
-            // Impressions: use prev-period post views computed earlier
             const prevTgPosts = tgPosts?.posts?.filter((p) => p.date >= prevFromStr && p.date <= prevToStr) ?? [];
-            const tgPrevImp = prevTgPosts.reduce((s, p) => s + (p.views ?? 0), 0);
-            prevTotalImpressions += tgPrevImp;
+            prevTotalImpressions += prevTgPosts.reduce((s, p) => s + (p.views ?? 0), 0);
+          }
+          // Sheet-driven: prefer snapshot, else fall back to channelSheet prev column
+          for (const k of sheetDriven) {
+            const snap = snapshotFor(k);
+            if (snap?.followers != null) {
+              prevTotalFollowers += snap.followers;
+              prevTotalImpressions += snap.impressions ?? 0;
+            } else if (channelSheet?.channels?.[k]) {
+              prevTotalFollowers += channelSheet.channels[k].prevFollowers ?? 0;
+              prevTotalImpressions += channelSheet.channels[k].prevImpressions ?? 0;
+            }
           }
           const followersWoW = prevTotalFollowers > 0
             ? Math.round(((totalFollowers - prevTotalFollowers) / prevTotalFollowers) * 1000) / 10
