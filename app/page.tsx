@@ -176,19 +176,29 @@ export default function OverviewPage() {
       } : {}),
     };
   }
-  // Telegram: live members + post views filtered by period
+  // Telegram: live members + post views filtered by period (with prev-period WoW)
   if (tgData) {
     const filteredTgPosts = tgPosts?.posts?.filter((p) => p.date >= from && p.date <= to) ?? [];
     const tgImpressions = filteredTgPosts.reduce((s, p) => s + (p.views ?? 0), 0);
+
+    // Previous period: same duration immediately before "from"
+    const prevTgPosts = tgPosts?.posts?.filter((p) => p.date >= prevFromStr && p.date <= prevToStr) ?? [];
+    const tgPrevImpressions = prevTgPosts.reduce((s, p) => s + (p.views ?? 0), 0);
+    const tgImpressionsChange = tgPrevImpressions > 0
+      ? Math.round(((tgImpressions - tgPrevImpressions) / tgPrevImpressions) * 1000) / 10
+      : 0;
+
     mergedMetrics.telegram = {
       ...mergedMetrics.telegram,
       followers: tgData.channel.members,
       ...(tgImpressions > 0
         ? {
             impressions: tgImpressions,
-            impressionsChange: 0,
-            // Set impressionsDetail so sheet override won't overwrite our live data
-            impressionsDetail: `${filteredTgPosts.length} posts`,
+            impressionsChange: tgImpressionsChange,
+            // Show post count + prev period impressions so sheet override won't overwrite
+            impressionsDetail: tgPrevImpressions > 0
+              ? `${filteredTgPosts.length} posts · prev ${tgPrevImpressions.toLocaleString()}`
+              : `${filteredTgPosts.length} posts`,
           }
         : {}),
     };
