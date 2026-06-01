@@ -16,7 +16,10 @@ function isAuthorized(req: Request) {
 
 async function safeFetch<T = unknown>(url: string): Promise<T | null> {
   try {
-    const r = await fetch(url, { cache: "no-store" });
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 25_000);
+    const r = await fetch(url, { cache: "no-store", signal: ctrl.signal });
+    clearTimeout(timer);
     if (!r.ok) return null;
     return (await r.json()) as T;
   } catch {
@@ -40,8 +43,9 @@ export async function GET(req: Request) {
   const base = process.env.NEXT_PUBLIC_APP_URL || "https://tiger-dashboard-delta.vercel.app";
   const today = new Date().toISOString().split("T")[0];
 
-  // Fetch all sources in parallel
-  const [ss, yt, ya, tg, tgp, cs] = await Promise.all([
+  // Fetch all sources in parallel. allSettled so one slow/failed endpoint
+  // doesn't kill the whole snapshot.
+  const results = await Promise.allSettled([
     safeFetch<SubstackResp>(`${base}/api/substack-stats?range=7`),
     safeFetch<YoutubeResp>(`${base}/api/youtube`),
     safeFetch<YtAnalyticsResp>(`${base}/api/youtube-analytics?days=7`),
@@ -49,6 +53,14 @@ export async function GET(req: Request) {
     safeFetch<TgPostsResp>(`${base}/api/telegram-posts`),
     safeFetch<ChannelSheetResp>(`${base}/api/channel-sheet`),
   ]);
+  const settledValue = <T>(i: number): T | null =>
+    results[i].status === "fulfilled" ? ((results[i] as PromiseFulfilledResult<T | null>).value) : null;
+  const ss = settledValue<SubstackResp>(0);
+  const yt = settledValue<YoutubeResp>(1);
+  const ya = settledValue<YtAnalyticsResp>(2);
+  const tg = settledValue<TelegramResp>(3);
+  const tgp = settledValue<TgPostsResp>(4);
+  const cs = settledValue<ChannelSheetResp>(5);
 
   // Compute Telegram impressions from last 7 days of posts
   const cutoff = new Date();
@@ -102,10 +114,13 @@ export async function GET(req: Request) {
     }
   }
 
+  // Only keep rows that have at least one real value
+  const validRows = rows.filter((r) => r.followers != null || r.impressions != null);
+
   // Upsert: one row per channel per day
   const { data, error } = await supabase
     .from("channel_metrics")
-    .upsert(rows, { onConflict: "channel,date" })
+    .upsert(validRows, { onConflict: "channel,date" })
     .select();
 
   if (error) {
