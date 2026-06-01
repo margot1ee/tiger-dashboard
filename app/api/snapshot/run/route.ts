@@ -117,22 +117,47 @@ export async function GET(req: Request) {
   // Only keep rows that have at least one real value
   const validRows = rows.filter((r) => r.followers != null || r.impressions != null);
 
-  // Upsert: one row per channel per day
-  const { data, error } = await supabase
-    .from("channel_metrics")
-    .upsert(validRows, { onConflict: "channel,date" })
-    .select();
+  // Delete any existing rows for today first (in case the upsert constraint
+  // doesn't exist), then insert. Two-step is safer.
+  let deleteError: unknown = null;
+  try {
+    const del = await supabase
+      .from("channel_metrics")
+      .delete()
+      .eq("date", today)
+      .eq("source", "auto");
+    deleteError = del.error;
+  } catch (e) {
+    deleteError = e;
+  }
 
-  if (error) {
-    return NextResponse.json(
-      { error: error.message, attempted: rows.length },
-      { status: 500 }
-    );
+  let insertedData: unknown[] | null = null;
+  let insertError: string | null = null;
+  try {
+    const ins = await supabase
+      .from("channel_metrics")
+      .insert(validRows)
+      .select();
+    insertedData = ins.data;
+    insertError = ins.error?.message || null;
+  } catch (e) {
+    insertError = e instanceof Error ? e.message : String(e);
   }
 
   return NextResponse.json({
     snapshotDate: today,
-    inserted: data?.length ?? 0,
-    rows: data,
+    attempted: validRows.length,
+    inserted: insertedData?.length ?? 0,
+    deleteError: deleteError instanceof Error ? deleteError.message : (deleteError as { message?: string })?.message ?? null,
+    insertError,
+    sources: {
+      substack: ss != null,
+      youtube: yt != null,
+      youtubeAnalytics: ya != null,
+      telegram: tg != null,
+      telegramPosts: tgp != null,
+      channelSheet: cs != null,
+    },
+    rows: validRows,
   });
 }
