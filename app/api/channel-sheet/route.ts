@@ -86,12 +86,14 @@ export async function GET() {
       return n;
     };
 
-    // Pick latest column where ALL sheet-driven channels have follower data.
-    // Real-time channels (Substack/YouTube/Telegram) are ignored for this check
-    // because they'll be filled in by live APIs on the dashboard.
+    // Pick latest column where at least 80% of sheet-driven channels have follower
+    // data. We allow 1 missing channel (e.g. JP X often updated last) so the
+    // dashboard moves to the new week without waiting for every last cell.
+    // Per-row fallback below still uses the prev column's value for missing cells.
+    const minRequired = Math.max(1, Math.ceil(sheetFollowerRows.length * 0.8));
     let lastCol = headerRow.length - 1;
     for (let c = headerRow.length - 1; c >= 3; c--) {
-      if (filledSheetFollowerCount(c) >= sheetFollowerRows.length) { lastCol = c; break; }
+      if (filledSheetFollowerCount(c) >= minRequired) { lastCol = c; break; }
     }
     const prevCol = lastCol - 1;
     const currentDate = headerRow[lastCol] || "";
