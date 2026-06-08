@@ -136,6 +136,9 @@ export default function OverviewPage() {
   }> = { ...channelMetrics };
   // Substack: live subscribers + period views from internal API
   if (substackStats) {
+    const ssChange = substackStats.subscribersStart && substackStats.subscribersStart > 0
+      ? Math.round(((substackStats.subscribers - substackStats.subscribersStart) / substackStats.subscribersStart) * 1000) / 10
+      : undefined;
     mergedMetrics.substack = {
       ...mergedMetrics.substack,
       followers: substackStats.subscribers,
@@ -143,6 +146,7 @@ export default function OverviewPage() {
       impressionsChange: substackStats.viewsChangePercent,
       followersRaw: substackStats.subscribers,
       impressionsDetail: `prev ${substackStats.prevViews.toLocaleString()}`,
+      ...(ssChange !== undefined ? { change: ssChange } : {}),
     };
   }
   // Substack subscribers: prefer API, fallback to sheet
@@ -167,9 +171,14 @@ export default function OverviewPage() {
     const ytNetSubs = ytAnalytics?.netSubscribers;
     const ytSubsGained = ytAnalytics?.subscribersGained;
     const ytSubsLost = ytAnalytics?.subscribersLost;
+    // Compute % change from net subs: prev = current - netSubs
+    const ytChange = ytNetSubs !== undefined && ytData.channel.subscribers - ytNetSubs > 0
+      ? Math.round((ytNetSubs / (ytData.channel.subscribers - ytNetSubs)) * 1000) / 10
+      : undefined;
     mergedMetrics.youtube = {
       ...mergedMetrics.youtube,
       followers: ytData.channel.subscribers,
+      ...(ytChange !== undefined ? { change: ytChange } : {}),
       // Prefer period views from Analytics API; if unavailable, leave impressions to be set by sheet override below
       ...(ytAnalytics?.views ? { impressions: ytAnalytics.views, impressionsChange: ytAnalytics.viewsChangePercent ?? 0 } : {}),
       ...(ytNetSubs !== undefined ? {
@@ -193,6 +202,10 @@ export default function OverviewPage() {
     mergedMetrics.telegram = {
       ...mergedMetrics.telegram,
       followers: tgData.channel.members,
+      // We don't have a Telegram historical members API; clear the demo change
+      // so we don't display a stale fake percent. Once snapshots are running
+      // the dashboard will pick up the real WoW from /api/metrics.
+      change: 0,
       ...(tgImpressions > 0
         ? {
             impressions: tgImpressions,
