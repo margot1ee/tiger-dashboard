@@ -63,12 +63,11 @@ function formatNumber(n: number) {
 }
 
 function getDateRange(period: PeriodKey, customFrom?: string, customTo?: string) {
-  const to = new Date();
-  const toStr = to.toISOString().split("T")[0];
   if (period === "custom" && customFrom && customTo) return { from: customFrom, to: customTo };
-  const from = new Date();
-  // Subtract (days - 1) so that [from, to] is exactly N inclusive days
-  // (e.g. 7D = today + 6 prior days, not 8).
+  // GA-style window: end at yesterday (today's data is partial). Inclusive N days.
+  const to = new Date();
+  to.setDate(to.getDate() - 1);
+  const from = new Date(to);
   switch (period) {
     case "7D": from.setDate(from.getDate() - 6); break;
     case "4W": from.setDate(from.getDate() - 27); break;
@@ -76,7 +75,7 @@ function getDateRange(period: PeriodKey, customFrom?: string, customTo?: string)
     case "6M": from.setMonth(from.getMonth() - 6); from.setDate(from.getDate() + 1); break;
     case "1Y": from.setFullYear(from.getFullYear() - 1); from.setDate(from.getDate() + 1); break;
   }
-  return { from: from.toISOString().split("T")[0], to: toStr };
+  return { from: from.toISOString().split("T")[0], to: to.toISOString().split("T")[0] };
 }
 
 function getPeriodLabel(period: PeriodKey) {
