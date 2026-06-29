@@ -244,13 +244,25 @@ export function useChannelMetricsRange(from: string, to: string) {
   );
 }
 
-// Get the most recent snapshot per channel ON OR BEFORE the given date.
-// Use this to get "last week's total followers" for WoW comparison.
+// Get the snapshot to use as "last week's reference" for WoW comparison.
+// Returns the most recent snapshot per channel from the prior week window —
+// i.e. dated STRICTLY BEFORE today but on or after (today - 7 days).
+// This avoids using a stale Cron-saved snapshot from before the sheet was
+// updated for that week.
 export function useSnapshotOnOrBefore(beforeDate: string) {
+  // Compute a 7-day lookback window: from = beforeDate, to = beforeDate + 6 days
+  // (interpreting `beforeDate` as the start of the current period i.e. ~7 days ago).
+  // We want snapshots dated in [beforeDate, today-1].
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
+
   const { data, loading } = useApiData<ChannelMetricsResponse>(
-    `/api/metrics?from=2020-01-01&to=${beforeDate}`
+    `/api/metrics?from=${beforeDate}&to=${yesterdayStr}`
   );
-  // The API returns rows sorted by date desc; first per channel is the latest <= beforeDate
+  // The API returns rows sorted by date desc. For each channel, pick the LATEST
+  // snapshot in the window — that's the freshest "last week" reference.
   const latestPerChannel: Record<string, ChannelMetric> = {};
   if (data?.metrics) {
     for (const m of data.metrics) {
