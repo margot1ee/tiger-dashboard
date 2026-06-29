@@ -67,12 +67,14 @@ function getDateRange(period: PeriodKey, customFrom?: string, customTo?: string)
   const toStr = to.toISOString().split("T")[0];
   if (period === "custom" && customFrom && customTo) return { from: customFrom, to: customTo };
   const from = new Date();
+  // Subtract (days - 1) so that [from, to] is exactly N inclusive days
+  // (e.g. 7D = today + 6 prior days, not 8).
   switch (period) {
-    case "7D": from.setDate(from.getDate() - 7); break;
-    case "4W": from.setDate(from.getDate() - 28); break;
-    case "3M": from.setMonth(from.getMonth() - 3); break;
-    case "6M": from.setMonth(from.getMonth() - 6); break;
-    case "1Y": from.setFullYear(from.getFullYear() - 1); break;
+    case "7D": from.setDate(from.getDate() - 6); break;
+    case "4W": from.setDate(from.getDate() - 27); break;
+    case "3M": from.setMonth(from.getMonth() - 3); from.setDate(from.getDate() + 1); break;
+    case "6M": from.setMonth(from.getMonth() - 6); from.setDate(from.getDate() + 1); break;
+    case "1Y": from.setFullYear(from.getFullYear() - 1); from.setDate(from.getDate() + 1); break;
   }
   return { from: from.toISOString().split("T")[0], to: toStr };
 }
