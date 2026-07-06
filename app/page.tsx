@@ -486,51 +486,36 @@ export default function OverviewPage() {
 
         {/* Total Followers & Impressions */}
         {(() => {
-          // Build prev totals. Snapshot table is the ground truth when available
-          // (auto-captured by /api/snapshot/run weekly). Fall back to per-API
-          // estimates only when no snapshot exists for that channel yet.
+          // Build prev totals by SUMMING each channel's own prev value that it
+          // displays on its card. This guarantees the Total delta equals the
+          // sum of per-card deltas (no drift between UI and headline number).
           const sheetDriven = new Set(["x", "linkedin", "xiaohongshu", "instagram_id", "x_jp"]);
           let prevTotalFollowers = 0;
           let prevTotalImpressions = 0;
 
-          const snapshotFor = (key: string) => prevSnapshots?.[key];
-          // Substack
-          const ssSnap = snapshotFor("substack");
-          if (ssSnap?.followers != null) {
-            prevTotalFollowers += ssSnap.followers;
-            prevTotalImpressions += ssSnap.impressions ?? substackStats?.prevViews ?? 0;
-          } else if (substackStats?.subscribersStart) {
+          // Substack: use subscribersStart (Substack API's 7-day-ago value)
+          if (substackStats?.subscribersStart) {
             prevTotalFollowers += substackStats.subscribersStart;
             prevTotalImpressions += substackStats.prevViews ?? 0;
+          } else {
+            prevTotalFollowers += mergedMetrics.substack.followers;
           }
-          // YouTube
-          const ytSnap = snapshotFor("youtube");
-          if (ytSnap?.followers != null) {
-            prevTotalFollowers += ytSnap.followers;
-            prevTotalImpressions += ytSnap.impressions ?? ytAnalytics?.prevViews ?? 0;
-          } else if (ytData && ytAnalytics) {
+          // YouTube: current - net subscribers change over the same window
+          if (ytData && ytAnalytics) {
             prevTotalFollowers += Math.max(0, ytData.channel.subscribers - (ytAnalytics.netSubscribers ?? 0));
             prevTotalImpressions += ytAnalytics.prevViews ?? 0;
           } else if (ytData) {
             prevTotalFollowers += ytData.channel.subscribers;
           }
-          // Telegram
-          const tgSnap = snapshotFor("telegram");
-          if (tgSnap?.followers != null) {
-            prevTotalFollowers += tgSnap.followers;
-            prevTotalImpressions += tgSnap.impressions ?? 0;
-          } else if (tgData) {
+          // Telegram: no historical members API — treat as unchanged (0 delta)
+          if (tgData) {
             prevTotalFollowers += tgData.channel.members;
             const prevTgPosts = tgPosts?.posts?.filter((p) => p.date >= prevFromStr && p.date <= prevToStr) ?? [];
             prevTotalImpressions += prevTgPosts.reduce((s, p) => s + (p.views ?? 0), 0);
           }
-          // Sheet-driven: prefer snapshot, else fall back to channelSheet prev column
+          // Sheet-driven: use sheet's prev column (same as displayed on each card)
           for (const k of sheetDriven) {
-            const snap = snapshotFor(k);
-            if (snap?.followers != null) {
-              prevTotalFollowers += snap.followers;
-              prevTotalImpressions += snap.impressions ?? 0;
-            } else if (channelSheet?.channels?.[k]) {
+            if (channelSheet?.channels?.[k]) {
               prevTotalFollowers += channelSheet.channels[k].prevFollowers ?? 0;
               prevTotalImpressions += channelSheet.channels[k].prevImpressions ?? 0;
             }
