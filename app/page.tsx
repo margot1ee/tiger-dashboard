@@ -679,7 +679,6 @@ function parseSheetDate(s: string): Date | null {
 function TrendsSection({
   followerTrend,
   impressionTrend,
-  trafficData,
 }: {
   followerTrend: Record<string, unknown>[];
   impressionTrend: Record<string, unknown>[];
@@ -701,6 +700,24 @@ function TrendsSection({
     return d;
   }, [period]);
 
+  // Fetch GA4 daily data covering the selected trend period (independent of
+  // the Overview page's period selector).
+  const trendFrom = useMemo(() => {
+    if (period === "ALL") {
+      const d = new Date();
+      d.setFullYear(d.getFullYear() - 2);
+      return d.toISOString().split("T")[0];
+    }
+    return cutoffDate.toISOString().split("T")[0];
+  }, [period, cutoffDate]);
+  const trendTo = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split("T")[0];
+  }, []);
+  const { data: trendGA } = useGA4Data(trendFrom, trendTo);
+  const trafficDataForPeriod = trendGA?.daily ?? [];
+
   const filteredFollower = useMemo(() =>
     followerTrend.filter((row) => {
       const d = parseSheetDate(String(row.date ?? ""));
@@ -715,13 +732,7 @@ function TrendsSection({
     }),
     [impressionTrend, cutoffDate]
   );
-  const filteredTraffic = useMemo(() =>
-    trafficData.filter((row) => {
-      const d = parseSheetDate(row.date);
-      return d ? d >= cutoffDate : true;
-    }),
-    [trafficData, cutoffDate]
-  );
+  const filteredTraffic = trafficDataForPeriod;
 
   const followerLines = [
     { dataKey: "Substack", color: "#FF6719", name: "Substack" },
