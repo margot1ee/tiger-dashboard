@@ -93,6 +93,8 @@ export function TrendChart({
                 activeDot={{ r: 4 }}
                 yAxisId={line.yAxisId || "left"}
                 strokeDasharray={line.strokeDasharray}
+                // Draw across missing weekly cells so lines stay continuous
+                connectNulls
               />
             ))}
           </LineChart>
