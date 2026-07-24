@@ -29,6 +29,7 @@ interface ChannelSheetResp { channels?: Record<string, ChannelSheetChannel> }
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const overrideDate = url.searchParams.get("date"); // YYYY-MM-DD
+  const substackOnly = url.searchParams.get("substackOnly") === "1";
   const base = process.env.NEXT_PUBLIC_APP_URL || "https://tiger-dashboard-delta.vercel.app";
 
   const targetDate = overrideDate
@@ -39,6 +40,34 @@ export async function GET(req: Request) {
         return d.toISOString().split("T")[0];
       })();
 
+  // Substack-only backfill: uses Substack API's `range` param to fetch
+  // subscribersStart at targetDate (= today - N days ago).
+  if (substackOnly) {
+    const daysAgo = Math.max(1, Math.floor(
+      (Date.now() - new Date(targetDate).getTime()) / 86400000
+    ));
+    const r = await safeFetch<{ subscribersStart?: number; subscribers?: number }>(
+      `${base}/api/substack-stats?range=${daysAgo}`
+    );
+    if (!r?.subscribersStart) {
+      return NextResponse.json({ error: "no data", targetDate, daysAgo }, { status: 500 });
+    }
+    // Delete any existing substack row for that date
+    await supabase.from("channel_metrics").delete().eq("date", targetDate).eq("channel", "substack").eq("source", "auto");
+    const { data, error } = await supabase
+      .from("channel_metrics")
+      .insert([{ channel: "substack", date: targetDate, followers: r.subscribersStart, impressions: null, source: "auto" }])
+      .select();
+    return NextResponse.json({
+      backfilledDate: targetDate,
+      daysAgo,
+      inserted: data?.length ?? 0,
+      followers: r.subscribersStart,
+      error: error?.message ?? null,
+    });
+  }
+
+  interface SubstackSheetResp { netChange?: number }
   const results = await Promise.allSettled([
     safeFetch<SubstackResp>(`${base}/api/substack-stats?range=7`),
     safeFetch<YoutubeResp>(`${base}/api/youtube`),
@@ -46,6 +75,7 @@ export async function GET(req: Request) {
     safeFetch<TelegramResp>(`${base}/api/telegram`),
     safeFetch<TgPostsResp>(`${base}/api/telegram-posts`),
     safeFetch<ChannelSheetResp>(`${base}/api/channel-sheet`),
+    safeFetch<SubstackSheetResp>(`${base}/api/substack-sheet?days=7`),
   ]);
   const v = <T>(i: number) =>
     results[i].status === "fulfilled" ? ((results[i] as PromiseFulfilledResult<T | null>).value) : null;
@@ -55,6 +85,7 @@ export async function GET(req: Request) {
   const tg = v<TelegramResp>(3);
   const tgp = v<TgPostsResp>(4);
   const cs = v<ChannelSheetResp>(5);
+  const ssheet = v<SubstackSheetResp>(6);
 
   // Telegram impressions for prev period (the 7 days before today's 7 days)
   const now = new Date();
@@ -77,8 +108,13 @@ export async function GET(req: Request) {
   }[] = [
     {
       channel: "substack",
+      // Prefer event-counted prev from In/Out sheet (gained-lost) which is more
+      // accurate than Substack's subscribersStart timing.
       date: targetDate,
-      followers: ss?.subscribersStart ?? null,
+      followers:
+        ssheet?.netChange != null && ss?.subscribers != null
+          ? ss.subscribers - ssheet.netChange
+          : ss?.subscribersStart ?? null,
       impressions: ss?.prevViews ?? null,
       source: "auto",
     },
