@@ -651,12 +651,26 @@ export default function OverviewPage() {
 type TrendPeriodKey = "1W" | "1M" | "3M" | "6M" | "1Y" | "ALL";
 
 function parseSheetDate(s: string): Date | null {
-  // Accepts "YY/M/D" or "YYYY-MM-DD"
+  // Accepts "YY/M/D" (sheet), "MM/DD" (GA4 daily), or "YYYY-MM-DD" (ISO)
   if (!s) return null;
   if (s.includes("/")) {
-    const [y, m, d] = s.split("/").map(Number);
-    const year = y < 100 ? 2000 + y : y;
-    return new Date(year, m - 1, d);
+    const parts = s.split("/").map(Number);
+    if (parts.length === 3) {
+      const [y, m, d] = parts;
+      const year = y < 100 ? 2000 + y : y;
+      return new Date(year, m - 1, d);
+    }
+    if (parts.length === 2) {
+      // MM/DD — assume current year
+      const [m, d] = parts;
+      const now = new Date();
+      let year = now.getFullYear();
+      // If the date is in the future (e.g. Dec when today is Jan), roll back a year
+      const dt = new Date(year, m - 1, d);
+      if (dt.getTime() > now.getTime() + 86400000) year -= 1;
+      return new Date(year, m - 1, d);
+    }
+    return null;
   }
   const dt = new Date(s);
   return isNaN(dt.getTime()) ? null : dt;
