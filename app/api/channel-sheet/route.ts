@@ -1,6 +1,25 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import { getGoogleAuth } from "@/lib/google-auth";
+import { supabase } from "@/lib/supabase";
+
+// Display-name mapping to match the format used in trend arrays
+const channelToDisplayName: Record<string, string> = {
+  substack: "Substack",
+  youtube: "Youtube",
+  x: "X (Twitter)",
+  linkedin: "LinkedIn",
+  telegram: "Telegram",
+  xiaohongshu: "Xiaohongshu",
+  instagram_id: "Instagram",
+  x_jp: "X (JP)",
+};
+
+// Convert ISO date "2026-06-08" to sheet format "26/6/8"
+function isoToSheetDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${String(y).slice(-2)}/${m}/${d}`;
+}
 
 const SPREADSHEET_ID = "1KUHn2um4XGSEwj-NQ6pGMGbUP8OMsb4X5sbb4ObRat0";
 
@@ -201,6 +220,65 @@ export async function GET() {
 
       if (Object.keys(folPoint).length > 1) followerTrend.push(folPoint);
       if (Object.keys(impPoint).length > 1) impressionTrend.push(impPoint);
+    }
+
+    // Merge Supabase snapshots for channels the sheet stopped tracking
+    // (Substack, YouTube, Telegram). This lets their trend lines extend to today.
+    try {
+      const { data: snapRows } = await supabase
+        .from("channel_metrics")
+        .select("channel,date,followers,impressions,source")
+        .in("channel", ["substack", "youtube", "telegram"])
+        .eq("source", "auto")
+        .order("date", { ascending: true });
+
+      if (snapRows && snapRows.length > 0) {
+        const folByDate: Record<string, Record<string, unknown>> = {};
+        const impByDate: Record<string, Record<string, unknown>> = {};
+        for (const r of followerTrend) folByDate[String(r.date)] = r;
+        for (const r of impressionTrend) impByDate[String(r.date)] = r;
+
+        for (const snap of snapRows) {
+          const sheetDate = isoToSheetDate(snap.date);
+          const dispName = channelToDisplayName[snap.channel];
+          if (!dispName) continue;
+
+          if (snap.followers != null) {
+            if (!folByDate[sheetDate]) {
+              folByDate[sheetDate] = { date: sheetDate };
+              followerTrend.push(folByDate[sheetDate]);
+            }
+            // Only fill if sheet didn't already have this channel for this date
+            if (folByDate[sheetDate][dispName] == null) {
+              folByDate[sheetDate][dispName] = snap.followers;
+            }
+          }
+          if (snap.impressions != null) {
+            if (!impByDate[sheetDate]) {
+              impByDate[sheetDate] = { date: sheetDate };
+              impressionTrend.push(impByDate[sheetDate]);
+            }
+            if (impByDate[sheetDate][dispName] == null) {
+              impByDate[sheetDate][dispName] = snap.impressions;
+            }
+          }
+        }
+
+        // Re-sort by date (parse "YY/M/D")
+        const parseSheetDateForSort = (s: string) => {
+          const [y, m, d] = s.split("/").map(Number);
+          return new Date(2000 + y, m - 1, d).getTime();
+        };
+        followerTrend.sort((a, b) =>
+          parseSheetDateForSort(String(a.date)) - parseSheetDateForSort(String(b.date))
+        );
+        impressionTrend.sort((a, b) =>
+          parseSheetDateForSort(String(a.date)) - parseSheetDateForSort(String(b.date))
+        );
+      }
+    } catch (e) {
+      // Snapshot merge is best-effort — if Supabase is down, just return sheet data
+      console.warn("Snapshot merge failed:", e);
     }
 
     return NextResponse.json(
