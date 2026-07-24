@@ -261,21 +261,46 @@ export async function GET() {
           return best?.d ?? null;
         };
 
+        // For each (channel, sheet-date) pair, pick the snapshot with the
+        // SMALLEST day diff so exact-day matches beat off-by-a-few-days ones.
+        const bestFol: Record<string, Record<string, { val: number; diff: number }>> = {};
+        const bestImp: Record<string, Record<string, { val: number; diff: number }>> = {};
         for (const snap of snapRows) {
           const dispName = channelToDisplayName[snap.channel];
           if (!dispName) continue;
+          const snapMs = new Date(snap.date).getTime();
 
           if (snap.followers != null) {
             const key = closestSheetDate(folSheetDates, snap.date);
-            if (key && folByDate[key][dispName] == null) {
-              folByDate[key][dispName] = snap.followers;
+            if (key) {
+              const diff = Math.abs(parseSheetDateForSort(key) - snapMs);
+              const prev = bestFol[key]?.[dispName];
+              if (!prev || diff < prev.diff) {
+                bestFol[key] ??= {};
+                bestFol[key][dispName] = { val: snap.followers, diff };
+              }
             }
           }
           if (snap.impressions != null) {
             const key = closestSheetDate(impSheetDates, snap.date);
-            if (key && impByDate[key][dispName] == null) {
-              impByDate[key][dispName] = snap.impressions;
+            if (key) {
+              const diff = Math.abs(parseSheetDateForSort(key) - snapMs);
+              const prev = bestImp[key]?.[dispName];
+              if (!prev || diff < prev.diff) {
+                bestImp[key] ??= {};
+                bestImp[key][dispName] = { val: snap.impressions, diff };
+              }
             }
+          }
+        }
+        for (const [key, perCh] of Object.entries(bestFol)) {
+          for (const [ch, { val }] of Object.entries(perCh)) {
+            if (folByDate[key][ch] == null) folByDate[key][ch] = val;
+          }
+        }
+        for (const [key, perCh] of Object.entries(bestImp)) {
+          for (const [ch, { val }] of Object.entries(perCh)) {
+            if (impByDate[key][ch] == null) impByDate[key][ch] = val;
           }
         }
 
