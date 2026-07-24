@@ -238,37 +238,48 @@ export async function GET() {
         for (const r of followerTrend) folByDate[String(r.date)] = r;
         for (const r of impressionTrend) impByDate[String(r.date)] = r;
 
-        for (const snap of snapRows) {
-          const sheetDate = isoToSheetDate(snap.date);
-          const dispName = channelToDisplayName[snap.channel];
-          if (!dispName) continue;
-
-          if (snap.followers != null) {
-            if (!folByDate[sheetDate]) {
-              folByDate[sheetDate] = { date: sheetDate };
-              followerTrend.push(folByDate[sheetDate]);
-            }
-            // Only fill if sheet didn't already have this channel for this date
-            if (folByDate[sheetDate][dispName] == null) {
-              folByDate[sheetDate][dispName] = snap.followers;
-            }
-          }
-          if (snap.impressions != null) {
-            if (!impByDate[sheetDate]) {
-              impByDate[sheetDate] = { date: sheetDate };
-              impressionTrend.push(impByDate[sheetDate]);
-            }
-            if (impByDate[sheetDate][dispName] == null) {
-              impByDate[sheetDate][dispName] = snap.impressions;
-            }
-          }
-        }
-
-        // Re-sort by date (parse "YY/M/D")
+        // Snap each snapshot to the nearest sheet-date row within ±3 days.
+        // Do NOT create new date rows — keeps the trend graph on weekly cadence.
         const parseSheetDateForSort = (s: string) => {
           const [y, m, d] = s.split("/").map(Number);
           return new Date(2000 + y, m - 1, d).getTime();
         };
+        const folSheetDates = Object.keys(folByDate).map((d) => ({ d, t: parseSheetDateForSort(d) }));
+        const impSheetDates = Object.keys(impByDate).map((d) => ({ d, t: parseSheetDateForSort(d) }));
+        const THREE_DAYS = 3 * 86400000;
+        const closestSheetDate = (
+          list: { d: string; t: number }[],
+          isoDate: string,
+        ): string | null => {
+          const t = new Date(isoDate).getTime();
+          let best: { d: string; diff: number } | null = null;
+          for (const item of list) {
+            const diff = Math.abs(item.t - t);
+            if (diff > THREE_DAYS) continue;
+            if (!best || diff < best.diff) best = { d: item.d, diff };
+          }
+          return best?.d ?? null;
+        };
+
+        for (const snap of snapRows) {
+          const dispName = channelToDisplayName[snap.channel];
+          if (!dispName) continue;
+
+          if (snap.followers != null) {
+            const key = closestSheetDate(folSheetDates, snap.date);
+            if (key && folByDate[key][dispName] == null) {
+              folByDate[key][dispName] = snap.followers;
+            }
+          }
+          if (snap.impressions != null) {
+            const key = closestSheetDate(impSheetDates, snap.date);
+            if (key && impByDate[key][dispName] == null) {
+              impByDate[key][dispName] = snap.impressions;
+            }
+          }
+        }
+
+        // Re-sort by date just in case
         followerTrend.sort((a, b) =>
           parseSheetDateForSort(String(a.date)) - parseSheetDateForSort(String(b.date))
         );
