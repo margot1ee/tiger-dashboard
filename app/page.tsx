@@ -638,62 +638,148 @@ export default function OverviewPage() {
       </section>
 
       {/* ── Trends ── */}
-      <section>
-        <div className="flex items-center gap-2 mb-4">
+      <TrendsSection
+        followerTrend={channelSheet?.followerTrend ?? followerTrend}
+        impressionTrend={channelSheet?.impressionTrend ?? []}
+        trafficData={chartTrafficData}
+      />
+    </div>
+  );
+}
+
+// ---------------- Trends Section ---------------- //
+type TrendPeriodKey = "1W" | "1M" | "3M" | "6M" | "1Y" | "ALL";
+
+function parseSheetDate(s: string): Date | null {
+  // Accepts "YY/M/D" or "YYYY-MM-DD"
+  if (!s) return null;
+  if (s.includes("/")) {
+    const [y, m, d] = s.split("/").map(Number);
+    const year = y < 100 ? 2000 + y : y;
+    return new Date(year, m - 1, d);
+  }
+  const dt = new Date(s);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function TrendsSection({
+  followerTrend,
+  impressionTrend,
+  trafficData,
+}: {
+  followerTrend: Record<string, unknown>[];
+  impressionTrend: Record<string, unknown>[];
+  trafficData: { date: string; visitors: number; pageviews: number }[];
+}) {
+  const [period, setPeriod] = useState<TrendPeriodKey>("3M");
+
+  const cutoffDate = useMemo(() => {
+    const now = new Date();
+    const d = new Date(now);
+    switch (period) {
+      case "1W": d.setDate(d.getDate() - 7); break;
+      case "1M": d.setMonth(d.getMonth() - 1); break;
+      case "3M": d.setMonth(d.getMonth() - 3); break;
+      case "6M": d.setMonth(d.getMonth() - 6); break;
+      case "1Y": d.setFullYear(d.getFullYear() - 1); break;
+      case "ALL": return new Date(0);
+    }
+    return d;
+  }, [period]);
+
+  const filteredFollower = useMemo(() =>
+    followerTrend.filter((row) => {
+      const d = parseSheetDate(String(row.date ?? ""));
+      return d ? d >= cutoffDate : true;
+    }),
+    [followerTrend, cutoffDate]
+  );
+  const filteredImpression = useMemo(() =>
+    impressionTrend.filter((row) => {
+      const d = parseSheetDate(String(row.date ?? ""));
+      return d ? d >= cutoffDate : true;
+    }),
+    [impressionTrend, cutoffDate]
+  );
+  const filteredTraffic = useMemo(() =>
+    trafficData.filter((row) => {
+      const d = parseSheetDate(row.date);
+      return d ? d >= cutoffDate : true;
+    }),
+    [trafficData, cutoffDate]
+  );
+
+  const followerLines = [
+    { dataKey: "Substack", color: "#FF6719", name: "Substack" },
+    { dataKey: "X (Twitter)", color: "#000000", name: "X" },
+    { dataKey: "LinkedIn", color: "#0A66C2", name: "LinkedIn" },
+    { dataKey: "Telegram", color: "#26A5E4", name: "Telegram" },
+    { dataKey: "Youtube", color: "#FF0000", name: "YouTube" },
+    { dataKey: "Xiaohongshu", color: "#FF2442", name: "小红书" },
+    { dataKey: "Instagram", color: "#E4405F", name: "Instagram" },
+  ];
+
+  return (
+    <section>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
           <div className="h-4 w-1 bg-violet-500 rounded-full" />
           <h2 className="text-sm font-semibold uppercase tracking-wider">Trends</h2>
         </div>
-        <Tabs defaultValue="followers" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="followers">Follower Trend</TabsTrigger>
-            <TabsTrigger value="impressions">Impressions Trend</TabsTrigger>
-            <TabsTrigger value="traffic">Traffic Trend</TabsTrigger>
-          </TabsList>
-          <TabsContent value="followers">
-            <TrendChart
-              title="Follower Growth (Weekly)"
-              data={channelSheet?.followerTrend ?? followerTrend}
-              lines={[
-                { dataKey: "Substack", color: "#FF6719", name: "Substack" },
-                { dataKey: "X (Twitter)", color: "#000000", name: "X" },
-                { dataKey: "LinkedIn", color: "#0A66C2", name: "LinkedIn" },
-                { dataKey: "Telegram", color: "#26A5E4", name: "Telegram" },
-                { dataKey: "Youtube", color: "#FF0000", name: "YouTube" },
-                { dataKey: "Xiaohongshu", color: "#FF2442", name: "小红书" },
-                { dataKey: "Instagram", color: "#E4405F", name: "Instagram" },
-              ]}
-              height={350}
-            />
-          </TabsContent>
-          <TabsContent value="impressions">
-            <TrendChart
-              title="Impressions Trend (Weekly)"
-              data={channelSheet?.impressionTrend ?? []}
-              lines={[
-                { dataKey: "Substack", color: "#FF6719", name: "Substack" },
-                { dataKey: "X (Twitter)", color: "#000000", name: "X" },
-                { dataKey: "LinkedIn", color: "#0A66C2", name: "LinkedIn" },
-                { dataKey: "Telegram", color: "#26A5E4", name: "Telegram" },
-                { dataKey: "Youtube", color: "#FF0000", name: "YouTube" },
-                { dataKey: "Xiaohongshu", color: "#FF2442", name: "小红书" },
-                { dataKey: "Instagram", color: "#E4405F", name: "Instagram" },
-              ]}
-              height={350}
-            />
-          </TabsContent>
-          <TabsContent value="traffic">
-            <TrendChart
-              title="Traffic Trend"
-              data={chartTrafficData}
-              lines={[
-                { dataKey: "visitors", color: "#f97316", name: "Visitors" },
-                { dataKey: "pageviews", color: "#3b82f6", name: "Pageviews" },
-              ]}
-              height={350}
-            />
-          </TabsContent>
-        </Tabs>
-      </section>
+        <div className="flex bg-muted rounded-lg p-0.5">
+          {(["1W", "1M", "3M", "6M", "1Y", "ALL"] as TrendPeriodKey[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                period === p
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Tabs defaultValue="followers" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="followers">Follower Trend</TabsTrigger>
+          <TabsTrigger value="impressions">Impressions Trend</TabsTrigger>
+          <TabsTrigger value="traffic">Traffic Trend</TabsTrigger>
+        </TabsList>
+        <TabsContent value="followers">
+          <TrendChart
+            title={`Follower Growth · ${period}`}
+            data={filteredFollower}
+            lines={followerLines}
+            height={350}
+          />
+        </TabsContent>
+        <TabsContent value="impressions">
+          <TrendChart
+            title={`Impressions · ${period}`}
+            data={filteredImpression}
+            lines={followerLines}
+            height={350}
+          />
+        </TabsContent>
+        <TabsContent value="traffic">
+          <TrendChart
+            title={`Traffic · ${period}`}
+            data={filteredTraffic}
+            lines={[
+              { dataKey: "visitors", color: "#f97316", name: "Visitors" },
+              { dataKey: "pageviews", color: "#3b82f6", name: "Pageviews" },
+            ]}
+            height={350}
+          />
+        </TabsContent>
+      </Tabs>
+    </section>
+  );
+}
     </div>
   );
 }
