@@ -676,6 +676,42 @@ function parseSheetDate(s: string): Date | null {
   return isNaN(dt.getTime()) ? null : dt;
 }
 
+// Add linear-regression trend fields "<dataKey>__trend" to each row so a
+// dashed line can be drawn parallel to the actual series.
+function withTrendLines(
+  data: Record<string, unknown>[],
+  keys: string[],
+): Record<string, unknown>[] {
+  if (data.length === 0) return data;
+  const trends: Record<string, { m: number; b: number } | null> = {};
+  for (const k of keys) {
+    const pts: { x: number; y: number }[] = [];
+    data.forEach((row, i) => {
+      const v = row[k];
+      if (typeof v === "number" && !isNaN(v)) pts.push({ x: i, y: v });
+    });
+    if (pts.length < 2) { trends[k] = null; continue; }
+    const n = pts.length;
+    const sumX = pts.reduce((s, p) => s + p.x, 0);
+    const sumY = pts.reduce((s, p) => s + p.y, 0);
+    const sumXY = pts.reduce((s, p) => s + p.x * p.y, 0);
+    const sumX2 = pts.reduce((s, p) => s + p.x * p.x, 0);
+    const denom = n * sumX2 - sumX * sumX;
+    if (denom === 0) { trends[k] = null; continue; }
+    const m = (n * sumXY - sumX * sumY) / denom;
+    const b = (sumY - m * sumX) / n;
+    trends[k] = { m, b };
+  }
+  return data.map((row, i) => {
+    const out: Record<string, unknown> = { ...row };
+    for (const k of keys) {
+      const t = trends[k];
+      if (t) out[`${k}__trend`] = Math.round(t.m * i + t.b);
+    }
+    return out;
+  });
+}
+
 function TrendsSection({
   followerTrend,
   impressionTrend,
@@ -685,6 +721,7 @@ function TrendsSection({
   trafficData: { date: string; visitors: number; pageviews: number }[];
 }) {
   const [period, setPeriod] = useState<TrendPeriodKey>("3M");
+  const [showTrendline, setShowTrendline] = useState(false);
 
   const cutoffDate = useMemo(() => {
     const now = new Date();
@@ -743,6 +780,29 @@ function TrendsSection({
     { dataKey: "Xiaohongshu", color: "#FF2442", name: "小红书" },
     { dataKey: "Instagram", color: "#E4405F", name: "Instagram" },
   ];
+  const trafficLines = [
+    { dataKey: "visitors", color: "#f97316", name: "Visitors" },
+    { dataKey: "pageviews", color: "#3b82f6", name: "Pageviews" },
+  ];
+
+  // Add dashed trend-line data + line configs when the toggle is on
+  const followerKeys = followerLines.map((l) => l.dataKey);
+  const trafficKeys = trafficLines.map((l) => l.dataKey);
+  const followerData = showTrendline ? withTrendLines(filteredFollower, followerKeys) : filteredFollower;
+  const impressionData = showTrendline ? withTrendLines(filteredImpression, followerKeys) : filteredImpression;
+  const trafficDataFinal = showTrendline ? withTrendLines(filteredTraffic, trafficKeys) : filteredTraffic;
+  const trendLineConfigs = (baseLines: { dataKey: string; color: string; name: string }[]) =>
+    showTrendline
+      ? [
+          ...baseLines,
+          ...baseLines.map((l) => ({
+            dataKey: `${l.dataKey}__trend`,
+            color: l.color,
+            name: `${l.name} 추세`,
+            strokeDasharray: "6 4",
+          })),
+        ]
+      : baseLines;
 
   return (
     <section>
@@ -751,20 +811,32 @@ function TrendsSection({
           <div className="h-4 w-1 bg-violet-500 rounded-full" />
           <h2 className="text-sm font-semibold uppercase tracking-wider">Trends</h2>
         </div>
-        <div className="flex bg-muted rounded-lg p-0.5">
-          {(["1W", "1M", "3M", "6M", "1Y", "ALL"] as TrendPeriodKey[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                period === p
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowTrendline((v) => !v)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-all ${
+              showTrendline
+                ? "bg-violet-500 text-white border-violet-500"
+                : "bg-background text-muted-foreground border-border hover:text-foreground"
+            }`}
+          >
+            추세선
+          </button>
+          <div className="flex bg-muted rounded-lg p-0.5">
+            {(["1W", "1M", "3M", "6M", "1Y", "ALL"] as TrendPeriodKey[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  period === p
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -777,27 +849,24 @@ function TrendsSection({
         <TabsContent value="followers">
           <TrendChart
             title={`Follower Growth · ${period}`}
-            data={filteredFollower}
-            lines={followerLines}
+            data={followerData}
+            lines={trendLineConfigs(followerLines)}
             height={350}
           />
         </TabsContent>
         <TabsContent value="impressions">
           <TrendChart
             title={`Impressions · ${period}`}
-            data={filteredImpression}
-            lines={followerLines}
+            data={impressionData}
+            lines={trendLineConfigs(followerLines)}
             height={350}
           />
         </TabsContent>
         <TabsContent value="traffic">
           <TrendChart
             title={`Traffic · ${period}`}
-            data={filteredTraffic}
-            lines={[
-              { dataKey: "visitors", color: "#f97316", name: "Visitors" },
-              { dataKey: "pageviews", color: "#3b82f6", name: "Pageviews" },
-            ]}
+            data={trafficDataFinal}
+            lines={trendLineConfigs(trafficLines)}
             height={350}
           />
         </TabsContent>
