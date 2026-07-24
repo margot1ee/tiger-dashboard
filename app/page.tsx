@@ -676,6 +676,42 @@ function parseSheetDate(s: string): Date | null {
   return isNaN(dt.getTime()) ? null : dt;
 }
 
+// Chips for toggling individual channels on/off in the Trends chart.
+function ChannelChips({
+  allLines,
+  hidden,
+  onToggle,
+}: {
+  allLines: { dataKey: string; color: string; name: string }[];
+  hidden: Set<string>;
+  onToggle: (key: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5 mb-3">
+      {allLines.map((l) => {
+        const isHidden = hidden.has(l.dataKey);
+        return (
+          <button
+            key={l.dataKey}
+            onClick={() => onToggle(l.dataKey)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-full border transition-all ${
+              isHidden
+                ? "bg-background text-muted-foreground border-border opacity-50 hover:opacity-100"
+                : "bg-background text-foreground border-foreground"
+            }`}
+          >
+            <span
+              className="inline-block h-2 w-2 rounded-full"
+              style={{ backgroundColor: isHidden ? "#d1d5db" : l.color }}
+            />
+            {l.name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // Add linear-regression trend fields "<dataKey>__trend" to each row so a
 // dashed line can be drawn parallel to the actual series.
 function withTrendLines(
@@ -722,6 +758,13 @@ function TrendsSection({
 }) {
   const [period, setPeriod] = useState<TrendPeriodKey>("3M");
   const [showTrendline, setShowTrendline] = useState(false);
+  const [hiddenChannels, setHiddenChannels] = useState<Set<string>>(new Set());
+  const toggleChannel = (key: string) =>
+    setHiddenChannels((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
 
   const cutoffDate = useMemo(() => {
     const now = new Date();
@@ -785,12 +828,16 @@ function TrendsSection({
     { dataKey: "pageviews", color: "#3b82f6", name: "Pageviews" },
   ];
 
+  // Filter out hidden channels
+  const visibleFollowerLines = followerLines.filter((l) => !hiddenChannels.has(l.dataKey));
+  const visibleTrafficLines = trafficLines.filter((l) => !hiddenChannels.has(l.dataKey));
+
   // Add dashed trend-line data + line configs when the toggle is on
-  const followerKeys = followerLines.map((l) => l.dataKey);
-  const trafficKeys = trafficLines.map((l) => l.dataKey);
-  const followerData = showTrendline ? withTrendLines(filteredFollower, followerKeys) : filteredFollower;
-  const impressionData = showTrendline ? withTrendLines(filteredImpression, followerKeys) : filteredImpression;
-  const trafficDataFinal = showTrendline ? withTrendLines(filteredTraffic, trafficKeys) : filteredTraffic;
+  const visibleFollowerKeys = visibleFollowerLines.map((l) => l.dataKey);
+  const visibleTrafficKeys = visibleTrafficLines.map((l) => l.dataKey);
+  const followerData = showTrendline ? withTrendLines(filteredFollower, visibleFollowerKeys) : filteredFollower;
+  const impressionData = showTrendline ? withTrendLines(filteredImpression, visibleFollowerKeys) : filteredImpression;
+  const trafficDataFinal = showTrendline ? withTrendLines(filteredTraffic, visibleTrafficKeys) : filteredTraffic;
   const trendLineConfigs = (baseLines: { dataKey: string; color: string; name: string }[]) =>
     showTrendline
       ? [
@@ -847,26 +894,41 @@ function TrendsSection({
           <TabsTrigger value="traffic">Traffic Trend</TabsTrigger>
         </TabsList>
         <TabsContent value="followers">
+          <ChannelChips
+            allLines={followerLines}
+            hidden={hiddenChannels}
+            onToggle={toggleChannel}
+          />
           <TrendChart
             title={`Follower Growth · ${period}`}
             data={followerData}
-            lines={trendLineConfigs(followerLines)}
+            lines={trendLineConfigs(visibleFollowerLines)}
             height={350}
           />
         </TabsContent>
         <TabsContent value="impressions">
+          <ChannelChips
+            allLines={followerLines}
+            hidden={hiddenChannels}
+            onToggle={toggleChannel}
+          />
           <TrendChart
             title={`Impressions · ${period}`}
             data={impressionData}
-            lines={trendLineConfigs(followerLines)}
+            lines={trendLineConfigs(visibleFollowerLines)}
             height={350}
           />
         </TabsContent>
         <TabsContent value="traffic">
+          <ChannelChips
+            allLines={trafficLines}
+            hidden={hiddenChannels}
+            onToggle={toggleChannel}
+          />
           <TrendChart
             title={`Traffic · ${period}`}
             data={trafficDataFinal}
-            lines={trendLineConfigs(trafficLines)}
+            lines={trendLineConfigs(visibleTrafficLines)}
             height={350}
           />
         </TabsContent>
