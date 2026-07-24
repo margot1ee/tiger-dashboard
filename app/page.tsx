@@ -676,6 +676,48 @@ function parseSheetDate(s: string): Date | null {
   return isNaN(dt.getTime()) ? null : dt;
 }
 
+// Grid of per-channel mini charts with auto-scaled Y-axis, so small channels
+// don't look flat next to big ones.
+function SplitTrendGrid({
+  data,
+  lines,
+  showTrendline,
+}: {
+  data: Record<string, unknown>[];
+  lines: { dataKey: string; color: string; name: string }[];
+  showTrendline: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {lines.map((l) => {
+        const singleData = showTrendline
+          ? withTrendLines(data, [l.dataKey])
+          : data;
+        const singleLines = showTrendline
+          ? [
+              l,
+              {
+                dataKey: `${l.dataKey}__trend`,
+                color: l.color,
+                name: `${l.name} 추세`,
+                strokeDasharray: "6 4",
+              },
+            ]
+          : [l];
+        return (
+          <TrendChart
+            key={l.dataKey}
+            title={l.name}
+            data={singleData}
+            lines={singleLines}
+            height={200}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 // Chips for toggling individual channels on/off in the Trends chart.
 function ChannelChips({
   allLines,
@@ -758,6 +800,7 @@ function TrendsSection({
 }) {
   const [period, setPeriod] = useState<TrendPeriodKey>("3M");
   const [showTrendline, setShowTrendline] = useState(false);
+  const [splitByChannel, setSplitByChannel] = useState(false);
   const [hiddenChannels, setHiddenChannels] = useState<Set<string>>(new Set());
   const toggleChannel = (key: string) =>
     setHiddenChannels((prev) => {
@@ -858,7 +901,17 @@ function TrendsSection({
           <div className="h-4 w-1 bg-violet-500 rounded-full" />
           <h2 className="text-sm font-semibold uppercase tracking-wider">Trends</h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setSplitByChannel((v) => !v)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-all ${
+              splitByChannel
+                ? "bg-violet-500 text-white border-violet-500"
+                : "bg-background text-muted-foreground border-border hover:text-foreground"
+            }`}
+          >
+            채널별 보기
+          </button>
           <button
             onClick={() => setShowTrendline((v) => !v)}
             className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-all ${
@@ -899,12 +952,20 @@ function TrendsSection({
             hidden={hiddenChannels}
             onToggle={toggleChannel}
           />
-          <TrendChart
-            title={`Follower Growth · ${period}`}
-            data={followerData}
-            lines={trendLineConfigs(visibleFollowerLines)}
-            height={350}
-          />
+          {splitByChannel ? (
+            <SplitTrendGrid
+              data={filteredFollower}
+              lines={visibleFollowerLines}
+              showTrendline={showTrendline}
+            />
+          ) : (
+            <TrendChart
+              title={`Follower Growth · ${period}`}
+              data={followerData}
+              lines={trendLineConfigs(visibleFollowerLines)}
+              height={350}
+            />
+          )}
         </TabsContent>
         <TabsContent value="impressions">
           <ChannelChips
@@ -912,12 +973,20 @@ function TrendsSection({
             hidden={hiddenChannels}
             onToggle={toggleChannel}
           />
-          <TrendChart
-            title={`Impressions · ${period}`}
-            data={impressionData}
-            lines={trendLineConfigs(visibleFollowerLines)}
-            height={350}
-          />
+          {splitByChannel ? (
+            <SplitTrendGrid
+              data={filteredImpression}
+              lines={visibleFollowerLines}
+              showTrendline={showTrendline}
+            />
+          ) : (
+            <TrendChart
+              title={`Impressions · ${period}`}
+              data={impressionData}
+              lines={trendLineConfigs(visibleFollowerLines)}
+              height={350}
+            />
+          )}
         </TabsContent>
         <TabsContent value="traffic">
           <ChannelChips
@@ -925,12 +994,20 @@ function TrendsSection({
             hidden={hiddenChannels}
             onToggle={toggleChannel}
           />
-          <TrendChart
-            title={`Traffic · ${period}`}
-            data={trafficDataFinal}
-            lines={trendLineConfigs(visibleTrafficLines)}
-            height={350}
-          />
+          {splitByChannel ? (
+            <SplitTrendGrid
+              data={filteredTraffic}
+              lines={visibleTrafficLines}
+              showTrendline={showTrendline}
+            />
+          ) : (
+            <TrendChart
+              title={`Traffic · ${period}`}
+              data={trafficDataFinal}
+              lines={trendLineConfigs(visibleTrafficLines)}
+              height={350}
+            />
+          )}
         </TabsContent>
       </Tabs>
     </section>
