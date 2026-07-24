@@ -780,6 +780,3 @@ function TrendsSection({
     </section>
   );
 }
-    </div>
-  );
-}
