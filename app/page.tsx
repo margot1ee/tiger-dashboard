@@ -709,6 +709,26 @@ function SplitTrendGrid({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {lines.map((l) => {
+        // Count actual non-null / non-zero values for this channel in the window
+        const validCount = data.reduce((n, row) => {
+          const v = row[l.dataKey];
+          return typeof v === "number" && v > 0 ? n + 1 : n;
+        }, 0);
+        if (validCount === 0) {
+          return (
+            <Card key={l.dataKey}>
+              <CardContent className="py-4 px-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: l.color }} />
+                  <span className="text-sm font-medium">{l.name}</span>
+                </div>
+                <div className="flex items-center justify-center h-[160px] text-xs text-muted-foreground">
+                  No data in this period
+                </div>
+              </CardContent>
+            </Card>
+          );
+        }
         const singleData = showTrendline
           ? withTrendLines(data, [l.dataKey])
           : data;
