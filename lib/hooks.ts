@@ -244,21 +244,31 @@ export function useChannelMetricsRange(from: string, to: string) {
   );
 }
 
-// Get the most recent snapshot per channel dated ON OR BEFORE the given date.
-// `beforeDate` is the START of the current period (i.e. one week ago), so
-// snapshots up to that date represent the state at the end of last period.
+// Get the snapshot per channel that best represents "last week" for WoW.
+// Strategy: pick the OLDEST snapshot in the window [beforeDate, yesterday].
+// `beforeDate` is start of the current period (~7 days ago), so the oldest
+// snapshot in that window is the closest to "one week ago" reference the
+// user remembers seeing.
 export function useSnapshotOnOrBefore(beforeDate: string) {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
+
   const { data, loading } = useApiData<ChannelMetricsResponse>(
-    `/api/metrics?from=2020-01-01&to=${beforeDate}`
+    `/api/metrics?from=${beforeDate}&to=${yesterdayStr}`
   );
-  // Rows arrive sorted by date desc; first per channel = latest snapshot <= beforeDate
-  const latestPerChannel: Record<string, ChannelMetric> = {};
+  // Rows arrive sorted by date desc; for prev we want the OLDEST in the window.
+  const oldestPerChannel: Record<string, ChannelMetric> = {};
   if (data?.metrics) {
     for (const m of data.metrics) {
-      if (!latestPerChannel[m.channel]) latestPerChannel[m.channel] = m;
+      const existing = oldestPerChannel[m.channel];
+      if (!existing || m.date < existing.date) oldestPerChannel[m.channel] = m;
     }
   }
-  return { snapshots: latestPerChannel, loading };
+  // Fallback: if the window is empty for some channels, fall back to the
+  // latest snapshot dated ON or BEFORE the start of the window.
+  return { snapshots: oldestPerChannel, loading };
 }
 
 // Channel Sheet (Marketing Performance spreadsheet)
