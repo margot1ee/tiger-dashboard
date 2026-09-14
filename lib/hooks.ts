@@ -123,6 +123,23 @@ export function useStibeeHistory() {
     "/api/metrics?channel=stibee",
   );
 }
+export interface StibeeCampaign {
+  round: string;
+  date: string;           // YY/M/D
+  openRate: number | null; // percent
+  clickRate: number | null;
+  sent: number | null;
+}
+export interface StibeePerformanceData {
+  campaigns: StibeeCampaign[];
+  latest: StibeeCampaign | null;
+  prev: StibeeCampaign | null;
+  avgOpenRateLast4: number | null;
+  avgClickRateLast4: number | null;
+}
+export function useStibeePerformance() {
+  return useApiData<StibeePerformanceData>("/api/stibee-performance");
+}
 
 // Substack Subscriber Sheet (In/Out) — Google Sheet fallback
 export interface SubstackSheetData {

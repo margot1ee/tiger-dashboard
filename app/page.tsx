@@ -10,7 +10,7 @@ import {
   trafficData,
   trafficSources,
 } from "@/lib/demo-data";
-import { useYouTubeData, useYouTubeAnalytics, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats, useChannelSheet, useSubstackSheet, useSubstackSubscribers, useSnapshotOnOrBefore, useStibeeStats, useStibeeHistory } from "@/lib/hooks";
+import { useYouTubeData, useYouTubeAnalytics, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats, useChannelSheet, useSubstackSheet, useSubstackSubscribers, useSnapshotOnOrBefore, useStibeeStats, useStibeeHistory, useStibeePerformance } from "@/lib/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Globe,
@@ -125,6 +125,7 @@ export default function OverviewPage() {
   const { data: substackSubs } = useSubstackSubscribers(periodDays);
   const { data: stibee } = useStibeeStats();
   const { data: stibeeHistory } = useStibeeHistory();
+  const { data: stibeePerf } = useStibeePerformance();
   const { data: dbMetrics } = useChannelMetrics(true);
   const { comparisons, prevFromStr, prevToStr } = useComparisonMetrics(from, to);
   // Snapshot at start of period (e.g., a week ago) — most accurate WoW reference
@@ -531,16 +532,74 @@ export default function OverviewPage() {
                   </div>
                 </div>
 
-                {/* Weekly trend chart */}
+                {/* Latest campaign summary */}
+                {stibeePerf?.latest && (
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                    <div className="border rounded-lg px-4 py-3">
+                      <p className="text-xs text-muted-foreground">Latest Open Rate</p>
+                      <p className="text-2xl font-bold">{stibeePerf.latest.openRate ?? "-"}%</p>
+                      {stibeePerf.prev?.openRate != null && stibeePerf.latest.openRate != null && (
+                        <p className={`text-[10px] mt-0.5 ${stibeePerf.latest.openRate - stibeePerf.prev.openRate >= 0 ? "text-green-600" : "text-red-500"}`}>
+                          {stibeePerf.latest.openRate - stibeePerf.prev.openRate >= 0 ? "+" : ""}
+                          {Math.round((stibeePerf.latest.openRate - stibeePerf.prev.openRate) * 100) / 100}%p vs 이전 회차
+                        </p>
+                      )}
+                    </div>
+                    <div className="border rounded-lg px-4 py-3">
+                      <p className="text-xs text-muted-foreground">Latest Click Rate</p>
+                      <p className="text-2xl font-bold">{stibeePerf.latest.clickRate ?? "-"}%</p>
+                      {stibeePerf.prev?.clickRate != null && stibeePerf.latest.clickRate != null && (
+                        <p className={`text-[10px] mt-0.5 ${stibeePerf.latest.clickRate - stibeePerf.prev.clickRate >= 0 ? "text-green-600" : "text-red-500"}`}>
+                          {stibeePerf.latest.clickRate - stibeePerf.prev.clickRate >= 0 ? "+" : ""}
+                          {Math.round((stibeePerf.latest.clickRate - stibeePerf.prev.clickRate) * 100) / 100}%p vs 이전 회차
+                        </p>
+                      )}
+                    </div>
+                    <div className="border rounded-lg px-4 py-3">
+                      <p className="text-xs text-muted-foreground">Sent (Latest)</p>
+                      <p className="text-2xl font-bold">{stibeePerf.latest.sent?.toLocaleString() ?? "-"}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{stibeePerf.latest.date} · {stibeePerf.latest.round}</p>
+                    </div>
+                    <div className="border rounded-lg px-4 py-3">
+                      <p className="text-xs text-muted-foreground">Avg Open (last 4)</p>
+                      <p className="text-2xl font-bold">{stibeePerf.avgOpenRateLast4 ?? "-"}%</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Click: {stibeePerf.avgClickRateLast4 ?? "-"}%
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Weekly subscriber trend chart */}
                 {trend.length >= 2 && (
+                  <div className="mb-4">
+                    <TrendChart
+                      title="Stibee Subscribers · Weekly"
+                      data={trend.map((t) => ({ date: t.date.slice(5), Subscribers: t.followers }))}
+                      lines={[{ dataKey: "Subscribers", color: "#5B4CFF", name: "Subscribers" }]}
+                      height={260}
+                    />
+                  </div>
+                )}
+
+                {/* Campaign performance trend chart */}
+                {stibeePerf?.campaigns && stibeePerf.campaigns.length >= 2 && (
                   <TrendChart
-                    title="Stibee Subscribers · Weekly"
-                    data={trend.map((t) => ({ date: t.date.slice(5), Subscribers: t.followers }))}
-                    lines={[{ dataKey: "Subscribers", color: "#5B4CFF", name: "Subscribers" }]}
+                    title="Campaign Performance · 회차별"
+                    data={stibeePerf.campaigns.map((c) => ({
+                      date: c.date,
+                      "Open Rate": c.openRate,
+                      "Click Rate": c.clickRate,
+                    }))}
+                    lines={[
+                      { dataKey: "Open Rate", color: "#5B4CFF", name: "오픈율 (%)" },
+                      { dataKey: "Click Rate", color: "#F97316", name: "클릭률 (%)" },
+                    ]}
                     height={260}
                   />
                 )}
-                {trend.length < 2 && (
+
+                {trend.length < 2 && !stibeePerf?.campaigns?.length && (
                   <div className="text-xs text-muted-foreground text-center py-6 border rounded-lg">
                     주간 스냅샷이 2회 이상 누적되면 여기에 추이가 표시됩니다 (매주 월요일 자동 저장)
                   </div>
