@@ -53,6 +53,12 @@ export interface YouTubeAnalyticsData {
   views: number;
   prevViews: number;
   viewsChangePercent: number;
+  shortsViews?: number;
+  prevShortsViews?: number;
+  shortsChangePercent?: number;
+  longViews?: number;
+  prevLongViews?: number;
+  longChangePercent?: number;
   subscribersGained: number;
   subscribersLost: number;
   netSubscribers: number;
@@ -95,6 +101,27 @@ export interface SubstackStatsData {
 export function useSubstackStats(rangeDays?: number) {
   const params = rangeDays ? `?range=${rangeDays}` : "";
   return useApiData<SubstackStatsData>(`/api/substack-stats${params}`);
+}
+
+// Stibee (Korean newsletter)
+export interface StibeeStatsData {
+  list: { id: number; name: string };
+  total: number;
+  active: number;
+  inactive: number;
+  gained7d: number;
+  gained30d: number;
+  avgOpenRate: number | null;
+  avgClickRate: number | null;
+  recentCampaigns: unknown[];
+}
+export function useStibeeStats() {
+  return useApiData<StibeeStatsData>("/api/stibee-stats");
+}
+export function useStibeeHistory() {
+  return useApiData<{ metrics: { date: string; followers: number | null; impressions: number | null }[] }>(
+    "/api/metrics?channel=stibee",
+  );
 }
 
 // Substack Subscriber Sheet (In/Out) — Google Sheet fallback

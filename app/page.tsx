@@ -10,7 +10,7 @@ import {
   trafficData,
   trafficSources,
 } from "@/lib/demo-data";
-import { useYouTubeData, useYouTubeAnalytics, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats, useChannelSheet, useSubstackSheet, useSubstackSubscribers, useSnapshotOnOrBefore } from "@/lib/hooks";
+import { useYouTubeData, useYouTubeAnalytics, useTelegramData, useXData, useChannelMetrics, useComparisonMetrics, useGA4Data, useTelegramPosts, useSubstackStats, useChannelSheet, useSubstackSheet, useSubstackSubscribers, useSnapshotOnOrBefore, useStibeeStats, useStibeeHistory } from "@/lib/hooks";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Globe,
@@ -123,6 +123,8 @@ export default function OverviewPage() {
   const { data: channelSheet } = useChannelSheet();
   const { data: substackSheet } = useSubstackSheet(periodDays);
   const { data: substackSubs } = useSubstackSubscribers(periodDays);
+  const { data: stibee } = useStibeeStats();
+  const { data: stibeeHistory } = useStibeeHistory();
   const { data: dbMetrics } = useChannelMetrics(true);
   const { comparisons, prevFromStr, prevToStr } = useComparisonMetrics(from, to);
   // Snapshot at start of period (e.g., a week ago) — most accurate WoW reference
@@ -184,7 +186,9 @@ export default function OverviewPage() {
       ...(ytAnalytics?.views ? { impressions: ytAnalytics.views, impressionsChange: ytAnalytics.viewsChangePercent ?? 0 } : {}),
       ...(ytNetSubs !== undefined ? {
         followersDetail: `${ytNetSubs >= 0 ? "+" : ""}${ytNetSubs} (↑${ytSubsGained} ↓${ytSubsLost})`,
-        impressionsDetail: `prev ${(ytAnalytics?.prevViews ?? 0).toLocaleString()}`,
+        impressionsDetail: ytAnalytics?.shortsViews != null && ytAnalytics?.longViews != null
+          ? `Shorts ${ytAnalytics.shortsViews.toLocaleString()} · Long ${ytAnalytics.longViews.toLocaleString()}`
+          : `prev ${(ytAnalytics?.prevViews ?? 0).toLocaleString()}`,
       } : {}),
     };
   }
@@ -474,6 +478,76 @@ export default function OverviewPage() {
               />
             </div>
           )}
+        </section>
+      )}
+
+      {/* ── Stibee (Korean Newsletter) ── */}
+      {stibee && (
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-4 w-1 bg-[#5B4CFF] rounded-full" />
+            <h2 className="text-sm font-semibold uppercase tracking-wider">Stibee (KR Newsletter)</h2>
+          </div>
+
+          {(() => {
+            // Weekly trend: pull all snapshots, sort ascending, take latest ~12 weeks
+            const trend = (stibeeHistory?.metrics ?? [])
+              .filter((m) => m.followers != null)
+              .slice()
+              .sort((a, b) => a.date.localeCompare(b.date));
+            // WoW: compare current vs earliest snapshot within last 7 days
+            const now = Date.now();
+            const weekAgo = now - 7 * 86400000;
+            const prevInWeek = trend.filter((t) => new Date(t.date).getTime() <= weekAgo).pop();
+            const prevSubs = prevInWeek?.followers ?? null;
+            const cur = stibee.active;
+            const delta = prevSubs != null ? cur - prevSubs : null;
+            const deltaPct = prevSubs && prevSubs > 0 ? Math.round(((cur - prevSubs) / prevSubs) * 1000) / 10 : null;
+
+            return (
+              <>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                  <div className="border rounded-lg px-4 py-3">
+                    <p className="text-xs text-muted-foreground">Total Subscribers</p>
+                    <p className="text-2xl font-bold">{cur.toLocaleString()}</p>
+                    {delta != null && (
+                      <p className={`text-[10px] mt-0.5 ${delta >= 0 ? "text-green-600" : "text-red-500"}`}>
+                        {delta >= 0 ? "+" : ""}{delta} {deltaPct != null ? `(${deltaPct > 0 ? "+" : ""}${deltaPct}%)` : ""} vs 지난 주
+                      </p>
+                    )}
+                  </div>
+                  <div className="border rounded-lg px-4 py-3">
+                    <p className="text-xs text-muted-foreground">Gained ↑ (7d)</p>
+                    <p className="text-2xl font-bold text-green-600">{stibee.gained7d}</p>
+                  </div>
+                  <div className="border rounded-lg px-4 py-3">
+                    <p className="text-xs text-muted-foreground">Gained ↑ (30d)</p>
+                    <p className="text-2xl font-bold text-green-600">{stibee.gained30d}</p>
+                  </div>
+                  <div className="border rounded-lg px-4 py-3">
+                    <p className="text-xs text-muted-foreground">Inactive / Churn</p>
+                    <p className="text-2xl font-bold text-red-500">{stibee.inactive}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">of {stibee.total} total</p>
+                  </div>
+                </div>
+
+                {/* Weekly trend chart */}
+                {trend.length >= 2 && (
+                  <TrendChart
+                    title="Stibee Subscribers · Weekly"
+                    data={trend.map((t) => ({ date: t.date.slice(5), Subscribers: t.followers }))}
+                    lines={[{ dataKey: "Subscribers", color: "#5B4CFF", name: "Subscribers" }]}
+                    height={260}
+                  />
+                )}
+                {trend.length < 2 && (
+                  <div className="text-xs text-muted-foreground text-center py-6 border rounded-lg">
+                    주간 스냅샷이 2회 이상 누적되면 여기에 추이가 표시됩니다 (매주 월요일 자동 저장)
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </section>
       )}
 

@@ -34,6 +34,7 @@ interface TelegramResp { channel?: { members?: number } }
 interface TgPostsResp { posts?: { date: string; views?: number }[] }
 interface ChannelSheetChannel { followers?: number; impressions?: number }
 interface ChannelSheetResp { channels?: Record<string, ChannelSheetChannel> }
+interface StibeeResp { total?: number; active?: number; gained7d?: number }
 
 export async function GET(req: Request) {
   if (!isAuthorized(req)) {
@@ -52,6 +53,7 @@ export async function GET(req: Request) {
     safeFetch<TelegramResp>(`${base}/api/telegram`),
     safeFetch<TgPostsResp>(`${base}/api/telegram-posts`),
     safeFetch<ChannelSheetResp>(`${base}/api/channel-sheet`),
+    safeFetch<StibeeResp>(`${base}/api/stibee-stats`),
   ]);
   const settledValue = <T>(i: number): T | null =>
     results[i].status === "fulfilled" ? ((results[i] as PromiseFulfilledResult<T | null>).value) : null;
@@ -61,6 +63,7 @@ export async function GET(req: Request) {
   const tg = settledValue<TelegramResp>(3);
   const tgp = settledValue<TgPostsResp>(4);
   const cs = settledValue<ChannelSheetResp>(5);
+  const stb = settledValue<StibeeResp>(6);
 
   // Compute Telegram impressions from last 7 days of posts
   const cutoff = new Date();
@@ -96,6 +99,15 @@ export async function GET(req: Request) {
       date: today,
       followers: tg?.channel?.members ?? null,
       impressions: tgImpressions > 0 ? tgImpressions : null,
+      source: "auto",
+    },
+    {
+      channel: "stibee",
+      date: today,
+      // Use active-subscriber count as the followers metric; new-subs-7d as
+      // impressions so the WoW/trend cards get something meaningful.
+      followers: stb?.active ?? stb?.total ?? null,
+      impressions: stb?.gained7d ?? null,
       source: "auto",
     },
   ];
