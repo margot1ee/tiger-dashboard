@@ -3,7 +3,7 @@ import { google } from "googleapis";
 import { getGoogleAuth } from "@/lib/google-auth";
 
 const SPREADSHEET_ID = "1KUHn2um4XGSEwj-NQ6pGMGbUP8OMsb4X5sbb4ObRat0";
-const TAB = "시트13";
+const TAB = "스티비";
 
 function parseRate(s: string | undefined): number | null {
   if (!s) return null;

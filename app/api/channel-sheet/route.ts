@@ -55,7 +55,7 @@ export async function GET() {
 
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "'시트10'!A1:ZZ30",
+      range: "'SNS'!A1:ZZ30",
     });
 
     const rows = res.data.values || [];

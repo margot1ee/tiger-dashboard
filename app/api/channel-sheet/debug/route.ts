@@ -10,7 +10,7 @@ export async function GET() {
     const sheets = google.sheets({ version: "v4", auth });
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "'시트10'!A1:ZZ30",
+      range: "'SNS'!A1:ZZ30",
     });
 
     const rows = res.data.values || [];
