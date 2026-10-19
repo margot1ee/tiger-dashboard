@@ -178,7 +178,8 @@ export async function GET(req: Request) {
   const title = url.searchParams.get("title") || "";
   if (!slug) return NextResponse.json({ error: "slug required" }, { status: 400 });
 
-  const base = process.env.NEXT_PUBLIC_APP_URL || "https://tiger-dashboard-delta.vercel.app";
+  // Use the incoming request's origin so sibling API calls stay in-cluster
+  const base = `${url.protocol}//${url.host}`;
 
   // Date window around publication (14 days after publication for GA4)
   const pubTime = pubDate ? new Date(pubDate) : new Date();
@@ -187,19 +188,65 @@ export async function GET(req: Request) {
   const now = new Date();
   const to = (toDate < now ? toDate : now).toISOString().split("T")[0];
 
-  const [ga4, stibee, tg] = await Promise.allSettled([
-    ga4ForPath(`/p/${slug.replace(/-eng$|-kor$/i, "")}`, from, to),
+  const slugBase = slug.replace(/-eng$|-kor$/i, "");
+
+  // Fetch X mapping first so we can issue tweet fetches in parallel
+  async function fetchXMapping() {
+    try {
+      const r = await fetch(`${base}/api/research/x-mapping`, { next: { revalidate: 300 } });
+      if (!r.ok) return null;
+      const data = (await r.json()) as { mappings?: { slugBase: string; xUrlKor?: string; xUrlEng?: string }[] };
+      return (data.mappings ?? []).find((m) => m.slugBase === slugBase) || null;
+    } catch {
+      return null;
+    }
+  }
+  async function fetchTweet(xurl: string) {
+    try {
+      const r = await fetch(`${base}/api/x-tweet?url=${encodeURIComponent(xurl)}`, { next: { revalidate: 1800 } });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch {
+      return null;
+    }
+  }
+  async function fetchPrMatches() {
+    try {
+      const r = await fetch(
+        `${base}/api/research/pr-match?title=${encodeURIComponent(title)}&pubDate=${encodeURIComponent(pubDate)}&windowDays=60`,
+        { next: { revalidate: 1800 } },
+      );
+      if (!r.ok) return null;
+      return await r.json();
+    } catch {
+      return null;
+    }
+  }
+
+  const xMap = await fetchXMapping();
+  const [ga4, stibee, tg, prs, xKor, xEng] = await Promise.allSettled([
+    ga4ForPath(`/p/${slugBase}`, from, to),
     matchStibee(pubDate),
     matchTelegram(pubDate, base, title),
+    pubDate && title ? fetchPrMatches() : Promise.resolve(null),
+    xMap?.xUrlKor ? fetchTweet(xMap.xUrlKor) : Promise.resolve(null),
+    xMap?.xUrlEng ? fetchTweet(xMap.xUrlEng) : Promise.resolve(null),
   ]);
 
   return NextResponse.json({
     slug,
+    slugBase,
     pubDate,
     title,
     window: { from, to },
     ga4: ga4.status === "fulfilled" ? ga4.value : null,
     stibee: stibee.status === "fulfilled" ? stibee.value : null,
     telegram: tg.status === "fulfilled" ? tg.value : null,
+    pr: prs.status === "fulfilled" ? prs.value : null,
+    x: {
+      kor: xKor.status === "fulfilled" ? xKor.value : null,
+      eng: xEng.status === "fulfilled" ? xEng.value : null,
+      mapping: xMap,
+    },
   });
 }
