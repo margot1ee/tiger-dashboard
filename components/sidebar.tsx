@@ -12,6 +12,7 @@ import {
   FileText,
   Lightbulb,
   PenSquare,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/traffic", label: "Traffic", icon: BarChart3 },
   { href: "/channels", label: "Channels", icon: Share2 },
   { href: "/content", label: "Content", icon: FileText },
+  { href: "/research", label: "Research", icon: BookOpen },
   { href: "/insights", label: "Insights", icon: Lightbulb },
   { href: "/input", label: "Data Input", icon: PenSquare },
 ];
