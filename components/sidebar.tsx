@@ -10,9 +10,9 @@ import {
   BarChart3,
   Share2,
   FileText,
-  Lightbulb,
   PenSquare,
   BookOpen,
+  Contact,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -23,7 +23,7 @@ const navItems = [
   { href: "/channels", label: "Channels", icon: Share2 },
   { href: "/content", label: "Content", icon: FileText },
   { href: "/research", label: "Research", icon: BookOpen },
-  { href: "/insights", label: "Insights", icon: Lightbulb },
+  { href: "/crm", label: "CRM", icon: Contact },
   { href: "/input", label: "Data Input", icon: PenSquare },
 ];
 
