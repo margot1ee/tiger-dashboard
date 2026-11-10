@@ -52,7 +52,7 @@ export async function GET(req: Request) {
     safeFetch<YtAnalyticsResp>(`${base}/api/youtube-analytics?days=7`),
     safeFetch<TelegramResp>(`${base}/api/telegram`),
     safeFetch<TgPostsResp>(`${base}/api/telegram-posts`),
-    safeFetch<ChannelSheetResp>(`${base}/api/channel-sheet`),
+    safeFetch<ChannelSheetResp>(`${base}/api/channel-sheet?bust=${Date.now()}`),
     safeFetch<StibeeResp>(`${base}/api/stibee-stats`),
   ]);
   const settledValue = <T>(i: number): T | null =>
